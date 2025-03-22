@@ -1,0 +1,2512 @@
+basePath: /api/v1
+definitions:
+  domain.Appointment:
+    properties:
+      appointment_date:
+        description: Дата и время консультации
+        type: string
+      client_id:
+        description: ID клиента
+        type: integer
+      communication_method:
+        allOf:
+        - $ref: '#/definitions/domain.CommunicationMethod'
+        description: Метод коммуникации
+      consultation_type:
+        allOf:
+        - $ref: '#/definitions/domain.ConsultationType'
+        description: Тип консультации
+      created_at:
+        type: string
+      id:
+        type: integer
+      payment_id:
+        description: ID платежа
+        type: string
+      price:
+        description: Стоимость консультации
+        type: number
+      specialist_id:
+        description: ID специалиста
+        type: integer
+      specialization_id:
+        description: ID специализации
+        type: integer
+      status:
+        allOf:
+        - $ref: '#/definitions/domain.AppointmentStatus'
+        description: Статус записи
+      updated_at:
+        type: string
+    type: object
+  domain.AppointmentStatus:
+    enum:
+    - pending
+    - paid
+    - completed
+    - cancelled
+    type: string
+    x-enum-comments:
+      AppointmentStatusCancelled: Отменено
+      AppointmentStatusCompleted: Завершено
+      AppointmentStatusPaid: Оплачено
+      AppointmentStatusPending: Ожидает оплаты
+    x-enum-varnames:
+    - AppointmentStatusPending
+    - AppointmentStatusPaid
+    - AppointmentStatusCompleted
+    - AppointmentStatusCancelled
+  domain.CommunicationMethod:
+    enum:
+    - phone
+    - whatsapp
+    type: string
+    x-enum-comments:
+      CommunicationMethodPhone: Телефонный звонок
+      CommunicationMethodWhatsApp: WhatsApp
+    x-enum-varnames:
+    - CommunicationMethodPhone
+    - CommunicationMethodWhatsApp
+  domain.ConsultationType:
+    enum:
+    - primary
+    - secondary
+    type: string
+    x-enum-comments:
+      ConsultationTypePrimary: Первичная консультация
+      ConsultationTypeSecondary: Вторичная консультация
+    x-enum-varnames:
+    - ConsultationTypePrimary
+    - ConsultationTypeSecondary
+  domain.CreateAppointmentDTO:
+    properties:
+      appointment_date:
+        type: string
+      communication_method:
+        allOf:
+        - $ref: '#/definitions/domain.CommunicationMethod'
+        enum:
+        - phone
+        - whatsapp
+      consultation_type:
+        allOf:
+        - $ref: '#/definitions/domain.ConsultationType'
+        enum:
+        - primary
+        - secondary
+      specialist_id:
+        type: integer
+      specialization_id:
+        type: integer
+    required:
+    - appointment_date
+    - communication_method
+    - consultation_type
+    - specialist_id
+    type: object
+  domain.CreateReplyDTO:
+    properties:
+      review_id:
+        type: integer
+      text:
+        type: string
+    required:
+    - review_id
+    - text
+    type: object
+  domain.CreateReviewDTO:
+    properties:
+      appointment_id:
+        type: integer
+      attentiveness:
+        maximum: 5
+        minimum: 1
+        type: integer
+      cleanliness:
+        maximum: 5
+        minimum: 1
+        type: integer
+      grammar:
+        maximum: 5
+        minimum: 1
+        type: integer
+      is_recommended:
+        type: boolean
+      meeting_efficiency:
+        maximum: 5
+        minimum: 1
+        type: integer
+      price_quality:
+        maximum: 5
+        minimum: 1
+        type: integer
+      professionalism:
+        maximum: 5
+        minimum: 1
+        type: integer
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+      service_rating:
+        description: Критерии оценки
+        maximum: 5
+        minimum: 1
+        type: integer
+      specialist_experience:
+        maximum: 5
+        minimum: 1
+        type: integer
+      specialist_id:
+        type: integer
+      text:
+        type: string
+    required:
+    - appointment_id
+    - rating
+    - specialist_id
+    - text
+    type: object
+  domain.CreateScheduleDTO:
+    properties:
+      date:
+        description: Дата в формате "2006-01-02"
+        type: string
+      end_time:
+        description: Время окончания в формате "15:04"
+        type: string
+      exclude_times:
+        description: Исключенные временные слоты
+        items:
+          type: string
+        type: array
+      slot_time:
+        description: Длительность слота в минутах
+        type: integer
+      start_time:
+        description: Время начала в формате "15:04"
+        type: string
+    required:
+    - date
+    - end_time
+    - slot_time
+    - start_time
+    type: object
+  domain.CreateSpecialistDTO:
+    properties:
+      association_member:
+        type: boolean
+      description:
+        type: string
+      education:
+        items:
+          $ref: '#/definitions/domain.EducationDTO'
+        type: array
+      experience:
+        minimum: 0
+        type: integer
+      experience_years:
+        type: integer
+      primary_consult_price:
+        minimum: 0
+        type: number
+      secondary_consult_price:
+        minimum: 0
+        type: number
+      specialization:
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.SpecialistType'
+        enum:
+        - lawyer
+        - psychologist
+      user_id:
+        type: integer
+      work_experience:
+        items:
+          $ref: '#/definitions/domain.WorkExperienceDTO'
+        type: array
+    required:
+    - experience
+    - primary_consult_price
+    - secondary_consult_price
+    - specialization
+    - type
+    type: object
+  domain.CreateSpecializationDTO:
+    properties:
+      description:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.SpecialistType'
+        enum:
+        - lawyer
+        - psychologist
+    required:
+    - description
+    - name
+    - type
+    type: object
+  domain.CreateUserDTO:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/domain.UserRole'
+        enum:
+        - client
+        - specialist
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - phone
+    - role
+    type: object
+  domain.Education:
+    properties:
+      created_at:
+        type: string
+      degree:
+        description: Степень
+        type: string
+      field_of_study:
+        type: string
+      from_year:
+        type: integer
+      graduation_year:
+        type: integer
+      id:
+        type: integer
+      institution:
+        description: Учебное заведение
+        type: string
+      specialist_id:
+        type: integer
+      specialization:
+        description: Специальность
+        type: string
+      to_year:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  domain.EducationDTO:
+    properties:
+      degree:
+        type: string
+      field_of_study:
+        type: string
+      from_year:
+        type: integer
+      graduation_year:
+        type: integer
+      institution:
+        type: string
+      specialization:
+        type: string
+      to_year:
+        type: integer
+    required:
+    - degree
+    - graduation_year
+    - institution
+    - specialization
+    type: object
+  domain.LoginRequest:
+    properties:
+      login:
+        description: Email или телефон
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  domain.PasswordUpdateDTO:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  domain.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  domain.RegisterRequest:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/domain.UserRole'
+        enum:
+        - client
+        - specialist
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - phone
+    - role
+    type: object
+  domain.Review:
+    properties:
+      appointment_id:
+        description: ID консультации
+        type: integer
+      attentiveness:
+        description: Внимательность
+        type: integer
+      cleanliness:
+        description: Чистота
+        type: integer
+      client_id:
+        description: ID клиента
+        type: integer
+      created_at:
+        type: string
+      grammar:
+        description: Грамотность
+        type: integer
+      id:
+        type: integer
+      is_recommended:
+        description: Рекомендует ли специалиста
+        type: boolean
+      meeting_efficiency:
+        description: Эффективность встречи
+        type: integer
+      price_quality:
+        description: Соотношение цена/качество
+        type: integer
+      professionalism:
+        description: Профессионализм
+        type: integer
+      rating:
+        description: Оценка от 1 до 5
+        type: integer
+      reply_id:
+        description: ID ответа на отзыв
+        type: integer
+      service_rating:
+        description: Критерии оценки
+        type: integer
+      specialist_experience:
+        description: Опыт специалиста
+        type: integer
+      specialist_id:
+        description: ID специалиста
+        type: integer
+      text:
+        description: Текст отзыва
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.Schedule:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      end_time:
+        description: Время окончания рабочего дня (формат "15:04")
+        type: string
+      exclude_times:
+        description: Исключенные временные слоты (формат "15:04")
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      slot_time:
+        description: Длительность слота в минутах
+        type: integer
+      specialist_id:
+        type: integer
+      start_time:
+        description: Время начала рабочего дня (формат "15:04")
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.Specialist:
+    properties:
+      association_member:
+        description: Состоит в ассоциации
+        type: boolean
+      average_rating:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      education:
+        items:
+          $ref: '#/definitions/domain.Education'
+        type: array
+      experience:
+        description: Опыт работы в годах
+        type: integer
+      experience_years:
+        type: integer
+      id:
+        type: integer
+      is_verified:
+        type: boolean
+      primary_consult_price:
+        type: number
+      rating:
+        type: number
+      recommendation_rate:
+        description: Процент рекомендаций
+        type: integer
+      reviews_count:
+        type: integer
+      secondary_consult_price:
+        type: number
+      specialization:
+        type: string
+      type:
+        $ref: '#/definitions/domain.SpecialistType'
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/domain.User'
+      user_id:
+        type: integer
+      work_experience:
+        items:
+          $ref: '#/definitions/domain.WorkPlace'
+        type: array
+    type: object
+  domain.SpecialistType:
+    enum:
+    - lawyer
+    - psychologist
+    type: string
+    x-enum-comments:
+      SpecialistTypeLawyer: Юрист
+      SpecialistTypePsychologist: Психолог
+    x-enum-varnames:
+    - SpecialistTypeLawyer
+    - SpecialistTypePsychologist
+  domain.Specialization:
+    properties:
+      created_at:
+        type: string
+      description:
+        description: Описание специализации
+        type: string
+      id:
+        type: integer
+      is_active:
+        description: Активна ли специализация
+        type: boolean
+      name:
+        description: Название специализации
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.SpecialistType'
+        description: Тип специалиста (юрист/психолог)
+      updated_at:
+        type: string
+    type: object
+  domain.Tokens:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  domain.UpdateAppointmentDTO:
+    properties:
+      appointment_date:
+        type: string
+      payment_id:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/domain.AppointmentStatus'
+        enum:
+        - pending
+        - paid
+        - completed
+        - cancelled
+    type: object
+  domain.UpdateScheduleDTO:
+    properties:
+      end_time:
+        description: Время окончания в формате "15:04"
+        type: string
+      exclude_times:
+        description: Исключенные временные слоты
+        items:
+          type: string
+        type: array
+      slot_time:
+        description: Длительность слота в минутах
+        type: integer
+      start_time:
+        description: Время начала в формате "15:04"
+        type: string
+    type: object
+  domain.UpdateSpecialistDTO:
+    properties:
+      association_member:
+        type: boolean
+      description:
+        type: string
+      experience:
+        minimum: 0
+        type: integer
+      experience_years:
+        type: integer
+      primary_consult_price:
+        minimum: 0
+        type: number
+      secondary_consult_price:
+        minimum: 0
+        type: number
+      specialization:
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.SpecialistType'
+        enum:
+        - lawyer
+        - psychologist
+    type: object
+  domain.UpdateSpecializationDTO:
+    properties:
+      description:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+    type: object
+  domain.UpdateUserDTO:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      phone:
+        type: string
+    type: object
+  domain.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_name:
+        type: string
+      middle_name:
+        type: string
+      phone:
+        type: string
+      role:
+        $ref: '#/definitions/domain.UserRole'
+      updated_at:
+        type: string
+    type: object
+  domain.UserRole:
+    enum:
+    - client
+    - specialist
+    - admin
+    type: string
+    x-enum-comments:
+      UserRoleAdmin: Администратор
+      UserRoleClient: Клиент
+      UserRoleSpecialist: Специалист (юрист/психолог)
+    x-enum-varnames:
+    - UserRoleClient
+    - UserRoleSpecialist
+    - UserRoleAdmin
+  domain.WorkExperienceDTO:
+    properties:
+      company:
+        type: string
+      description:
+        type: string
+      end_year:
+        type: integer
+      from_date:
+        type: string
+      position:
+        type: string
+      start_year:
+        type: integer
+      to_date:
+        type: string
+    required:
+    - company
+    - position
+    - start_year
+    type: object
+  domain.WorkPlace:
+    properties:
+      company:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      end_year:
+        description: Null если текущее место работы
+        type: integer
+      from_date:
+        type: string
+      id:
+        type: integer
+      position:
+        type: string
+      specialist_id:
+        type: integer
+      start_year:
+        type: integer
+      to_date:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  rest.errorResponseBody:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  rest.messageResponseType:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  rest.paginatedResponse:
+    properties:
+      data: {}
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total_count:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API для записи к специалистам
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: LAPS API
+  version: "1.0"
+paths:
+  /appointments:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список записей на консультации с фильтрацией и пагинацией
+      parameters:
+      - description: Лимит записей на странице (по умолчанию 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      - description: ID клиента (только для админов)
+        in: query
+        name: client_id
+        type: integer
+      - description: ID специалиста (только для админов)
+        in: query
+        name: specialist_id
+        type: integer
+      - description: Статус записи
+        in: query
+        name: status
+        type: string
+      - description: Начальная дата (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: Конечная дата (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список записей с пагинацией
+          schema:
+            $ref: '#/definitions/rest.paginatedResponse'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить список записей
+      tags:
+      - Записи
+    post:
+      consumes:
+      - application/json
+      description: Создает новую запись на консультацию к специалисту
+      parameters:
+      - description: Данные для записи на консультацию
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateAppointmentDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданной записи
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации или выбранное время недоступно
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Создать запись на консультацию
+      tags:
+      - Записи
+  /appointments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Отменяет запись на консультацию
+      parameters:
+      - description: ID записи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешной отмене
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Неверный формат ID или ошибка отмены
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Запись не найдена
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Отменить запись
+      tags:
+      - Записи
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о записи на консультацию по указанному ID
+      parameters:
+      - description: ID записи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные записи
+          schema:
+            $ref: '#/definitions/domain.Appointment'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Запись не найдена
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить запись по ID
+      tags:
+      - Записи
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о записи на консультацию
+      parameters:
+      - description: ID записи
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления записи
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateAppointmentDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Ошибка валидации или выбранное время недоступно
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Запись не найдена
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить запись
+      tags:
+      - Записи
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизует пользователя и возвращает токены доступа
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токены доступа и обновления
+          schema:
+            $ref: '#/definitions/domain.Tokens'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Вход в систему
+      tags:
+      - Авторизация
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Завершает сессию пользователя и инвалидирует токены
+      parameters:
+      - description: Токен обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешный выход
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Выход из системы
+      tags:
+      - Авторизация
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет токены доступа и обновления
+      parameters:
+      - description: Токен обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Новые токены доступа и обновления
+          schema:
+            $ref: '#/definitions/domain.Tokens'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Неверный токен обновления
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Обновление токена
+      tags:
+      - Авторизация
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя в системе
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Токены доступа и обновления
+          schema:
+            $ref: '#/definitions/domain.Tokens'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Регистрация нового пользователя
+      tags:
+      - Авторизация
+  /education:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список образования указанного специалиста
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список образования
+          schema:
+            items:
+              $ref: '#/definitions/domain.Education'
+            type: array
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить список образования специалиста
+      tags:
+      - Образование
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую запись об образовании для специалиста
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      - description: Данные об образовании
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.EducationDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданной записи об образовании
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить образование специалисту
+      tags:
+      - Образование
+  /education/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет информацию об образовании
+      parameters:
+      - description: ID образования
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Образование успешно удалено
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Образование не найдено
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить образование
+      tags:
+      - Образование
+    get:
+      consumes:
+      - application/json
+      description: Возвращает детальную информацию об образовании по его ID
+      parameters:
+      - description: ID образования
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные об образовании
+          schema:
+            $ref: '#/definitions/domain.Education'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Образование не найдено
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить информацию об образовании по ID
+      tags:
+      - Образование
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию об образовании
+      parameters:
+      - description: ID образования
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные об образовании
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.EducationDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Данные успешно обновлены
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Образование не найдено
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить информацию об образовании
+      tags:
+      - Образование
+  /reviews:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список отзывов с возможностью фильтрации и пагинацией
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        type: integer
+      - description: ID клиента
+        in: query
+        name: client_id
+        type: integer
+      - description: Минимальный рейтинг
+        in: query
+        name: min_rating
+        type: integer
+      - description: Максимальный рейтинг
+        in: query
+        name: max_rating
+        type: integer
+      - description: Лимит записей на странице (по умолчанию 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список отзывов с пагинацией
+          schema:
+            $ref: '#/definitions/rest.paginatedResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить список отзывов
+      tags:
+      - Отзывы
+    post:
+      consumes:
+      - application/json
+      description: Создает новый отзыв о специалисте
+      parameters:
+      - description: Данные отзыва, включая рейтинги по различным критериям
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateReviewDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданного отзыва
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Создать отзыв
+      tags:
+      - Отзывы
+  /reviews/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет отзыв (только автор или администратор)
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Отзыв успешно удален
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Отзыв не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить отзыв
+      tags:
+      - Отзывы
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию об отзыве по указанному ID
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные отзыва
+          schema:
+            $ref: '#/definitions/domain.Review'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Отзыв не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить отзыв по ID
+      tags:
+      - Отзывы
+  /reviews/{id}/replies:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет ответ специалиста на отзыв (только специалист, о котором
+        отзыв, или администратор)
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Текст ответа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateReplyDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданного ответа
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Отзыв не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить ответ на отзыв
+      tags:
+      - Отзывы
+  /reviews/replies/{replyId}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет ответ на отзыв (только администратор)
+      parameters:
+      - description: ID ответа
+        in: path
+        name: replyId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Ответ успешно удален
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить ответ на отзыв
+      tags:
+      - Отзывы
+  /schedules:
+    get:
+      description: Возвращает список расписаний с поддержкой фильтрации
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        type: integer
+      - description: Начальная дата (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: Конечная дата (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      - description: Лимит (по умолчанию 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список расписаний с пагинацией
+          schema:
+            $ref: '#/definitions/rest.paginatedResponse'
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить список расписаний
+      tags:
+      - Расписание
+    post:
+      consumes:
+      - application/json
+      description: Создает новое расписание для специалиста
+      parameters:
+      - description: Данные для создания расписания
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateScheduleDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданного расписания
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Создать расписание
+      tags:
+      - Расписание
+  /schedules/{id}:
+    delete:
+      description: Удаляет существующее расписание
+      parameters:
+      - description: ID расписания
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешном удалении
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Расписание не найдено
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить расписание
+      tags:
+      - Расписание
+    get:
+      description: Получает расписание по ID
+      parameters:
+      - description: ID расписания
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Расписание
+          schema:
+            $ref: '#/definitions/domain.Schedule'
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Расписание не найдено
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить расписание по ID
+      tags:
+      - Расписание
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующее расписание
+      parameters:
+      - description: ID расписания
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления расписания
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateScheduleDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Расписание не найдено
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить расписание
+      tags:
+      - Расписание
+  /schedules/free-slots:
+    get:
+      description: Возвращает список свободных временных слотов на выбранную дату
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      - description: Дата (YYYY-MM-DD)
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список свободных слотов
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить свободные слоты специалиста
+      tags:
+      - Расписание
+  /specialists:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список специалистов с фильтрацией и пагинацией
+      parameters:
+      - description: Лимит записей на странице (по умолчанию 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Тип специалиста (психолог, психотерапевт и т.д.)
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список специалистов
+          schema:
+            items:
+              $ref: '#/definitions/domain.Specialist'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить список специалистов
+      tags:
+      - Специалисты
+    post:
+      consumes:
+      - application/json
+      description: Создает профиль специалиста для пользователя
+      parameters:
+      - description: Данные специалиста
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateSpecialistDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданного специалиста
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Создать специалиста
+      tags:
+      - Специалисты
+  /specialists/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о специалисте по указанному ID
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные специалиста
+          schema:
+            $ref: '#/definitions/domain.Specialist'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить специалиста по ID
+      tags:
+      - Специалисты
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о специалисте
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные специалиста
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateSpecialistDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Данные успешно обновлены
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить специалиста
+      tags:
+      - Специалисты
+  /specialists/{id}/reviews:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список отзывов о специалисте с пагинацией (перенаправляет
+        на /reviews)
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Лимит записей на странице (по умолчанию 10)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список отзывов с пагинацией
+          schema:
+            $ref: '#/definitions/rest.paginatedResponse'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить отзывы о специалисте
+      tags:
+      - Специалисты
+      - Отзывы
+  /specialists/me:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает профиль специалиста для текущего авторизованного пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные специалиста
+          schema:
+            $ref: '#/definitions/domain.Specialist'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Профиль специалиста не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить профиль специалиста текущего пользователя
+      tags:
+      - Специалисты
+  /specializations:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список специализаций с фильтрацией и пагинацией
+      parameters:
+      - description: Лимит записей на странице (по умолчанию 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Тип специалиста (психолог, психотерапевт и т.д.)
+        in: query
+        name: type
+        type: string
+      - description: Фильтр по активности
+        in: query
+        name: is_active
+        type: boolean
+      - description: Поисковый запрос
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список специализаций с пагинацией
+          schema:
+            $ref: '#/definitions/rest.paginatedResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить список специализаций
+      tags:
+      - Специализации
+    post:
+      consumes:
+      - application/json
+      description: Создает новую специализацию (только для администраторов)
+      parameters:
+      - description: Данные специализации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateSpecializationDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданной специализации
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Создать специализацию
+      tags:
+      - Специализации
+  /specializations/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет специализацию (только для администраторов)
+      parameters:
+      - description: ID специализации
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Специализация успешно удалена
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специализация не найдена
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить специализацию
+      tags:
+      - Специализации
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о специализации по указанному ID
+      parameters:
+      - description: ID специализации
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные специализации
+          schema:
+            $ref: '#/definitions/domain.Specialization'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специализация не найдена
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить специализацию по ID
+      tags:
+      - Специализации
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о специализации (только для администраторов)
+      parameters:
+      - description: ID специализации
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные специализации
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateSpecializationDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специализация не найдена
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить специализацию
+      tags:
+      - Специализации
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список пользователей с пагинацией (только для администраторов)
+      parameters:
+      - description: Лимит записей на странице (по умолчанию 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение (по умолчанию 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список пользователей
+          schema:
+            items:
+              $ref: '#/definitions/domain.User'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить список пользователей
+      tags:
+      - Пользователи
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя (только для администраторов)
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданного пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Создать пользователя
+      tags:
+      - Пользователи
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет пользователя по ID (только для администраторов)
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Пользователь успешно удален
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить пользователя
+      tags:
+      - Пользователи
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о пользователе по указанному ID
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные пользователя
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить пользователя по ID
+      tags:
+      - Пользователи
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные пользователя
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Пользователь успешно обновлен
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить пользователя
+      tags:
+      - Пользователи
+  /users/{id}/password:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет пароль пользователя (только сам пользователь может обновить
+        свой пароль)
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления пароля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.PasswordUpdateDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Пароль успешно обновлен
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить пароль пользователя
+      tags:
+      - Пользователи
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о текущем авторизованном пользователе
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные пользователя
+          schema:
+            $ref: '#/definitions/domain.User'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить текущего пользователя
+      tags:
+      - Пользователи
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

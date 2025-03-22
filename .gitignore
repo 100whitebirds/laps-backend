@@ -1,0 +1,50 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+laps
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Go specific
+vendor/
+/go.work
+
+# Dependency directories (remove the comment below if you want to ignore them)
+# vendor/
+
+# Log files
+*.log
+
+# Database files
+*.db
+*.sql
+*.sqlite
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage.txt
+coverage.html 
+
+# На время
+Makefile
+.air.toml
