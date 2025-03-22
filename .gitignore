@@ -48,3 +48,4 @@ coverage.html
 # На время
 Makefile
 .air.toml
+tmp/
