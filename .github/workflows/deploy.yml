@@ -5,14 +5,46 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  IMAGE_NAME: "ghcr.io/${{ github.repository_owner }}/laps"
+  IMAGE_TAG: "latest"
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+    
+    outputs:
+      image_name: ${{ env.IMAGE_NAME }}
+      image_tag: ${{ env.IMAGE_TAG }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
       - name: Deploy to Server
         uses: appleboy/ssh-action@master
         with:
@@ -21,16 +53,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           script: |
-            # Создаем рабочую директорию
             mkdir -p ~/laps
             cd ~/laps
             
-            # Очищаем директорию перед копированием новых файлов
-            rm -rf ./* || true
-            
-            # Создаем файл с переменными окружения
             cat > .env << EOF
-            # Общие настройки приложения
+
             APP_ENV=${{ secrets.APP_ENV || 'production' }}
             APP_NAME=${{ secrets.APP_NAME || 'laps' }}
             
@@ -54,36 +81,15 @@ jobs:
             # Настройки логгирования
             LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
             EOF
-
-      - name: Copy files to server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
-          target: "~/laps"
-          strip_components: 0
-      
-      - name: Build and run Docker
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd ~/laps
             
-            # Останавливаем старый контейнер (если есть)
-            sudo docker-compose down || true
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Создаем docker-compose.yml
             cat > docker-compose.yml << EOF
             version: '3.8'
             
             services:
               app:
-                build: .
+                image: ${{ needs.build.outputs.image_name }}:${{ needs.build.outputs.image_tag }}
                 container_name: laps
                 restart: always
                 env_file:
@@ -92,5 +98,7 @@ jobs:
                   - "\${HTTP_PORT:-8080}:8080"
             EOF
             
-            # Собираем и запускаем новый контейнер
-            sudo docker-compose up -d --build
+            sudo docker-compose down || true
+            
+            sudo docker-compose pull
+            sudo docker-compose up -d
