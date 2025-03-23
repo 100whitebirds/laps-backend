@@ -12,20 +12,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       
-    - name: Set up environment file
+    - name: Setup known hosts
       run: |
-        cat > .env << EOF
-        HTTP_PORT=8080
-        POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-        POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-        POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-        POSTGRES_SSL_MODE=disable
-        JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
-        LOG_LEVEL=info
-        EOF
-        
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+      
     - name: Copy files to server
       uses: appleboy/scp-action@master
+      id: scp
+      continue-on-error: true
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
@@ -33,6 +28,17 @@ jobs:
         source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal, ./cmd, ./pkg, ./migrations, ./configs"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
         debug: true
+        use_insecure_cipher: true
+
+    - name: Alternative file copy (if SCP fails)
+      if: steps.scp.outcome == 'failure'
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        tar -czvf app.tar.gz go.mod go.sum docker-compose.yml Dockerfile ./internal ./cmd ./pkg ./migrations ./configs
+        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa app.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /home/${{ secrets.SERVER_USER }}/laps-app && tar -xzvf /home/${{ secrets.SERVER_USER }}/app.tar.gz -C /home/${{ secrets.SERVER_USER }}/laps-app"
         
     - name: Deploy application
       uses: appleboy/ssh-action@master
@@ -40,11 +46,24 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        use_insecure_cipher: true
         script: |
           cd /home/${{ secrets.SERVER_USER }}/laps-app
+          
+          # Создаем временный файл для переменных окружения
+          export HTTP_PORT=8080
+          export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          export POSTGRES_SSL_MODE=disable
+          export JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+          export LOG_LEVEL=info
+          
           sudo docker-compose build
           sudo docker-compose down
-          sudo docker-compose up -d
+          
+          # Запуск с передачей переменных окружения
+          sudo -E docker-compose up -d
           
           sleep 10
           
