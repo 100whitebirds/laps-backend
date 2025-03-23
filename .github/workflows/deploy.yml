@@ -32,6 +32,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal, ./cmd, ./pkg, ./migrations, ./configs"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
+        debug: true
         
     - name: Deploy application
       uses: appleboy/ssh-action@master
@@ -47,4 +48,4 @@ jobs:
           
           sleep 10
           
-          sudodocker-compose exec app ./laps migrate
+          sudo docker-compose exec app ./laps migrate
