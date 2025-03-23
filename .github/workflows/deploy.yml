@@ -12,6 +12,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        load: true
+        tags: laps-api:latest
+        
+    - name: Save Docker image
+      run: docker save laps-api:latest > laps-api.tar
+      
     - name: Set up environment file
       run: |
         cat > .env << EOF
@@ -30,7 +44,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "docker-compose.yml,Dockerfile,.env,./internal,./cmd,./pkg,./migrations,./configs"
+        source: "laps-api.tar,.env"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
         
     - name: Deploy application
@@ -40,13 +54,26 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd /home/${{ secrets.SERVER_USER }}/laps-app
-          sudo docker-compose build
-          sudo docker-compose down
-          sudo docker-compose up -d
+          cd /home/${{ secrets.SERVER_USER }}/laps-app\
+          sudo docker load < laps-api.tar
           
-          # Ждем, пока приложение запустится
+          source .env
+          sudo docker stop laps-api || true
+          sudo docker rm laps-api || true
+          sudo docker run -d \
+            --name laps-api \
+            --restart unless-stopped \
+            -p "${HTTP_PORT:-8080}:8080" \
+            -e POSTGRES_HOST=host.docker.internal \
+            -e POSTGRES_PORT=5432 \
+            -e POSTGRES_USER="${POSTGRES_USER}" \
+            -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
+            -e POSTGRES_DB="${POSTGRES_DB:-laps}" \
+            -e POSTGRES_SSL_MODE=disable \
+            -e JWT_SIGNING_KEY="${JWT_SIGNING_KEY}" \
+            -e LOG_LEVEL=info \
+            --add-host=host.docker.internal:host-gateway \
+            laps-api:latest
+          
           sleep 10
-          
-          # Запускаем миграции
-          sudo docker-compose exec app ./laps migrate
+          sudo docker exec laps-api ./laps migrate || echo "Миграции не выполнены"
