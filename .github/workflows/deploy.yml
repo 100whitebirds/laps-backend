@@ -1,75 +1,96 @@
-name: CI/CD Pipeline
+name: Deploy Application
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build Docker image
-        run: |
-          # Изменим имя приложения, если оно замаскировано
-          if grep -q "\*\*\*" Dockerfile; then
-            sed -i 's/o \*\*\* \./o laps \./g' Dockerfile
-            sed -i 's|/app/\*\*\* \.|/app/laps \.|g' Dockerfile
-            sed -i 's|\["./\*\*\*"\]|["./laps"]|g' Dockerfile
-          fi
-          docker build -t laps-app:latest .
-          docker save laps-app:latest > laps-app.tar
-
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Copy Docker image to server
-        run: |
-          scp -o StrictHostKeyChecking=no laps-app.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
-
-      - name: Deploy
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            # Загрузка Docker образа
-            sudo docker load < /home/${{ secrets.SERVER_USER }}/laps-app.tar
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            # Создаем рабочую директорию
+            mkdir -p ~/laps
+            cd ~/laps
             
-            # Остановка и удаление контейнера, если он существует
-            if [ \$(sudo docker ps -a -q -f name=laps-app) ]; then
-              sudo docker stop laps-app
-              sudo docker rm laps-app
-            fi
+            # Очищаем директорию перед копированием новых файлов
+            rm -rf ./* || true
             
-            # Запуск нового контейнера
-            sudo docker run -d --name laps-app \
-              -p 8080:8080 \
-              -e HTTP_PORT=8080 \
-              -e POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
-              -e POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
-              -e POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
-              -e POSTGRES_SSL_MODE=disable \
-              -e JWT_SIGNING_KEY='${{ secrets.JWT_SIGNING_KEY }}' \
-              -e LOG_LEVEL=info \
-              laps-app:latest
+            # Создаем файл с переменными окружения
+            cat > .env << EOF
+            # Общие настройки приложения
+            APP_ENV=${{ secrets.APP_ENV:-production }}
+            APP_NAME=${{ secrets.APP_NAME:-laps }}
             
-            # Вывод логов для проверки
-            sleep 5
-            sudo docker logs laps-app
+            # HTTP настройки
+            HTTP_PORT=${{ secrets.HTTP_PORT:-8080 }}
             
-            # Удаление tar-архива для экономии места
-            rm /home/${{ secrets.SERVER_USER }}/laps-app.tar
-          "
+            # Postgres настройки
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST:-localhost }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT:-5432 }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB:-laps }}
+            POSTGRES_SSL_MODE=${{ secrets.POSTGRES_SSL_MODE:-disable }}
+            POSTGRES_MAX_CONNECTIONS=${{ secrets.POSTGRES_MAX_CONNECTIONS:-10 }}
+            POSTGRES_MAX_IDLE_CONNECTIONS=${{ secrets.POSTGRES_MAX_IDLE_CONNECTIONS:-2 }}
+            POSTGRES_MAX_LIFETIME=${{ secrets.POSTGRES_MAX_LIFETIME:-1h }}
+            
+            # JWT настройки
+            JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+            
+            # Настройки логгирования
+            LOG_LEVEL=${{ secrets.LOG_LEVEL:-info }}
+            EOF
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "~/laps"
+          strip_components: 0
+      
+      - name: Build and run Docker
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/laps
+            
+            # Останавливаем старый контейнер (если есть)
+            sudo docker-compose down || true
+            
+            # Создаем docker-compose.yml
+            cat > sudo docker-compose.yml << EOF
+            version: '3.8'
+            
+            services:
+              app:
+                build: .
+                container_name: laps
+                restart: always
+                env_file:
+                  - .env
+                ports:
+                  - "${HTTP_PORT:-8080}:8080"
+            EOF
+            
+            # Собираем и запускаем новый контейнер
+            sudo docker-compose up -d --build
