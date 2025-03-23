@@ -31,28 +31,28 @@ jobs:
             # Создаем файл с переменными окружения
             cat > .env << EOF
             # Общие настройки приложения
-            # APP_ENV=${{ secrets.APP_ENV:-production }}
-            # APP_NAME=${{ secrets.APP_NAME:-laps }}
+            APP_ENV=${{ secrets.APP_ENV || 'production' }}
+            APP_NAME=${{ secrets.APP_NAME || 'laps' }}
             
             # HTTP настройки
-            HTTP_PORT=${{ secrets.HTTP_PORT:-8080 }}
+            HTTP_PORT=${{ secrets.HTTP_PORT || '8080' }}
             
             # Postgres настройки
-            POSTGRES_HOST=${{ secrets.POSTGRES_HOST:-localhost }}
-            POSTGRES_PORT=${{ secrets.POSTGRES_PORT:-5432 }}
+            POSTGRES_HOST=${{ secrets.POSTGRES_HOST || 'localhost' }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT || '5432' }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB:-laps }}
-            POSTGRES_SSL_MODE=${{ secrets.POSTGRES_SSL_MODE:-disable }}
-            POSTGRES_MAX_CONNECTIONS=${{ secrets.POSTGRES_MAX_CONNECTIONS:-10 }}
-            POSTGRES_MAX_IDLE_CONNECTIONS=${{ secrets.POSTGRES_MAX_IDLE_CONNECTIONS:-2 }}
-            POSTGRES_MAX_LIFETIME=${{ secrets.POSTGRES_MAX_LIFETIME:-1h }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB || 'laps' }}
+            POSTGRES_SSL_MODE=${{ secrets.POSTGRES_SSL_MODE || 'disable' }}
+            POSTGRES_MAX_CONNECTIONS=${{ secrets.POSTGRES_MAX_CONNECTIONS || '10' }}
+            POSTGRES_MAX_IDLE_CONNECTIONS=${{ secrets.POSTGRES_MAX_IDLE_CONNECTIONS || '2' }}
+            POSTGRES_MAX_LIFETIME=${{ secrets.POSTGRES_MAX_LIFETIME || '1h' }}
             
             # JWT настройки
             JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
             
             # Настройки логгирования
-            LOG_LEVEL=${{ secrets.LOG_LEVEL:-info }}
+            LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
             EOF
 
       - name: Copy files to server
@@ -78,7 +78,7 @@ jobs:
             sudo docker-compose down || true
             
             # Создаем docker-compose.yml
-            cat > sudo docker-compose.yml << EOF
+            cat > docker-compose.yml << EOF
             version: '3.8'
             
             services:
@@ -89,7 +89,7 @@ jobs:
                 env_file:
                   - .env
                 ports:
-                  - "${HTTP_PORT:-8080}:8080"
+                  - "\${HTTP_PORT:-8080}:8080"
             EOF
             
             # Собираем и запускаем новый контейнер
