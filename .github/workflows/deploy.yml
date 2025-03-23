@@ -54,12 +54,14 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd /home/${{ secrets.SERVER_USER }}/laps-app\
+          cd /home/${{ secrets.SERVER_USER }}/laps-app
+          
           sudo docker load < laps-api.tar
           
-          source .env
           sudo docker stop laps-api || true
           sudo docker rm laps-api || true
+          
+          source .env
           sudo docker run -d \
             --name laps-api \
             --restart unless-stopped \
@@ -76,4 +78,5 @@ jobs:
             laps-api:latest
           
           sleep 10
+      
           sudo docker exec laps-api ./laps migrate || echo "Миграции не выполнены"
