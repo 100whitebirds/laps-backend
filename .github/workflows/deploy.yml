@@ -25,7 +25,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal/**, ./pkg/**, ./migrations/**, ./configs/**"
+        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, main.go, ./internal/**, ./pkg/**, ./migrations/**, ./configs/**"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
         debug: true
         use_insecure_cipher: true
@@ -36,7 +36,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        tar -czvf app.tar.gz go.mod go.sum docker-compose.yml Dockerfile ./internal ./pkg ./migrations ./configs
+        tar -czvf app.tar.gz go.mod go.sum docker-compose.yml Dockerfile main.go ./internal ./pkg ./migrations ./configs
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa app.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /home/${{ secrets.SERVER_USER }}/laps-app && tar -xzvf /home/${{ secrets.SERVER_USER }}/app.tar.gz -C /home/${{ secrets.SERVER_USER }}/laps-app"
         
@@ -90,39 +90,27 @@ jobs:
           
           # Создаем main.go чтобы решить проблему с отсутствием Go файлов
           echo "Creating main.go stub file..."
-          mkdir -p cmd/app
-          cat > cmd/app/main.go << 'EOF'
-package main
-
-import (
-	"log"
-)
-
-func main() {
-	log.Println("Application starting...")
-}
-EOF
+          # Удаляем команду создания main.go, так как файл уже есть в проекте
           
           # Собираем и запускаем приложение
           echo "Building and running the application..."
           
-          # Создаем .env файл для docker-compose
-          cat > .env << EOF
-            HTTP_PORT=8080
-            POSTGRES_USER=$POSTGRES_USER
-            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-            POSTGRES_DB=$POSTGRES_DB
-            POSTGRES_SSL_MODE=disable
-            JWT_SIGNING_KEY=$JWT_SIGNING_KEY
-            LOG_LEVEL=info
-            EOF
-          
+          echo "Starting docker-compose build..."
           sudo docker-compose build
           sudo docker-compose down
           
-          # Запуск
-          sudo docker-compose up -d
+          # Запуск с передачей переменных окружения напрямую
+          echo "Starting docker-compose up with environment variables..."
+          HTTP_PORT=8080 \
+          POSTGRES_USER="${POSTGRES_USER}" \
+          POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
+          POSTGRES_DB="${POSTGRES_DB}" \
+          POSTGRES_SSL_MODE=disable \
+          JWT_SIGNING_KEY="${JWT_SIGNING_KEY}" \
+          LOG_LEVEL=info \
+          sudo -E docker-compose up -d
           
           sleep 10
           
-          sudo docker-compose exec app ./laps migrate
+          echo "Running migrations..."
+          sudo docker-compose exec -T app ./laps migrate
