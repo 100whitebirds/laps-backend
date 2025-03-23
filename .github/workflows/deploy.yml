@@ -25,7 +25,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal/**, ./cmd/**, ./pkg/**, ./migrations/**, ./configs/**"
+        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal/**, ./pkg/**, ./migrations/**, ./configs/**"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
         debug: true
         use_insecure_cipher: true
@@ -36,7 +36,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        tar -czvf app.tar.gz go.mod go.sum docker-compose.yml Dockerfile ./internal ./cmd ./pkg ./migrations ./configs
+        tar -czvf app.tar.gz go.mod go.sum docker-compose.yml Dockerfile ./internal ./pkg ./migrations ./configs
         scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa app.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /home/${{ secrets.SERVER_USER }}/laps-app && tar -xzvf /home/${{ secrets.SERVER_USER }}/app.tar.gz -C /home/${{ secrets.SERVER_USER }}/laps-app"
         
@@ -59,10 +59,16 @@ jobs:
           export JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
           export LOG_LEVEL=info
           
+          # Удаляем .env файл, если он существует
+          if [ -f ".env" ]; then
+            echo "Removing .env file..."
+            rm .env
+          fi
+          
           # Проверяем наличие файлов и директорий
           echo "Checking files and directories..."
           ls -la
-          if [ ! -d "./cmd" ] || [ ! -d "./internal" ]; then
+          if [ ! -d "./internal" ] || [ ! -d "./pkg" ] || [ ! -d "./migrations" ]; then
             echo "ERROR: Required directories are missing!"
             exit 1
           fi
