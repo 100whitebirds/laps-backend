@@ -7,57 +7,20 @@ services:
       dockerfile: Dockerfile
     container_name: laps-app
     restart: unless-stopped
-    depends_on:
-      - postgres
     environment:
-      - APP_ENV=development
-      - HTTP_PORT=8080
-      - POSTGRES_HOST=postgres
+      - APP_ENV=${APP_ENV:-production}
+      - HTTP_PORT=${HTTP_PORT:-8080}
+      - POSTGRES_HOST=host.docker.internal
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=laps
-      - POSTGRES_SSL_MODE=disable
-      - JWT_SIGNING_KEY=change_me_in_production
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-laps}
+      - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE:-disable}
+      - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     ports:
-      - "8080:8080"
+      - "${HTTP_PORT:-8080}:8080"
     networks:
       - laps-network
     volumes:
       - ./logs:/app/logs
-
-  postgres:
-    image: postgres:14-alpine
-    container_name: laps-postgres
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=laps
-    ports:
-      - "5432:5432"
-    networks:
-      - laps-network
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: laps-pgadmin
-    restart: unless-stopped
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@example.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
-    ports:
-      - "5050:80"
-    networks:
-      - laps-network
-    depends_on:
-      - postgres
-
-networks:
-  laps-network:
-    driver: bridge
-
-volumes:
-  postgres-data: 
