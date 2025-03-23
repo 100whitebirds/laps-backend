@@ -15,7 +15,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "94.247.129.222:8080",
     "basePath": "/api/v1",
     "paths": {
         "/appointments": {
@@ -2697,28 +2697,16 @@
             "type": "object",
             "properties": {
                 "appointment_date": {
-                    "description": "Дата и время консультации",
                     "type": "string"
                 },
                 "client_id": {
-                    "description": "ID клиента",
                     "type": "integer"
                 },
                 "communication_method": {
-                    "description": "Метод коммуникации",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.CommunicationMethod"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.CommunicationMethod"
                 },
                 "consultation_type": {
-                    "description": "Тип консультации",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.ConsultationType"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.ConsultationType"
                 },
                 "created_at": {
                     "type": "string"
@@ -2727,28 +2715,19 @@
                     "type": "integer"
                 },
                 "payment_id": {
-                    "description": "ID платежа",
                     "type": "string"
                 },
                 "price": {
-                    "description": "Стоимость консультации",
                     "type": "number"
                 },
                 "specialist_id": {
-                    "description": "ID специалиста",
                     "type": "integer"
                 },
                 "specialization_id": {
-                    "description": "ID специализации",
                     "type": "integer"
                 },
                 "status": {
-                    "description": "Статус записи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.AppointmentStatus"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.AppointmentStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -2763,12 +2742,6 @@
                 "completed",
                 "cancelled"
             ],
-            "x-enum-comments": {
-                "AppointmentStatusCancelled": "Отменено",
-                "AppointmentStatusCompleted": "Завершено",
-                "AppointmentStatusPaid": "Оплачено",
-                "AppointmentStatusPending": "Ожидает оплаты"
-            },
             "x-enum-varnames": [
                 "AppointmentStatusPending",
                 "AppointmentStatusPaid",
@@ -2782,10 +2755,6 @@
                 "phone",
                 "whatsapp"
             ],
-            "x-enum-comments": {
-                "CommunicationMethodPhone": "Телефонный звонок",
-                "CommunicationMethodWhatsApp": "WhatsApp"
-            },
             "x-enum-varnames": [
                 "CommunicationMethodPhone",
                 "CommunicationMethodWhatsApp"
@@ -2797,10 +2766,6 @@
                 "primary",
                 "secondary"
             ],
-            "x-enum-comments": {
-                "ConsultationTypePrimary": "Первичная консультация",
-                "ConsultationTypeSecondary": "Вторичная консультация"
-            },
             "x-enum-varnames": [
                 "ConsultationTypePrimary",
                 "ConsultationTypeSecondary"
@@ -2914,7 +2879,6 @@
                     "minimum": 1
                 },
                 "service_rating": {
-                    "description": "Критерии оценки",
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 1
@@ -2942,26 +2906,21 @@
             ],
             "properties": {
                 "date": {
-                    "description": "Дата в формате \"2006-01-02\"",
                     "type": "string"
                 },
                 "end_time": {
-                    "description": "Время окончания в формате \"15:04\"",
                     "type": "string"
                 },
                 "exclude_times": {
-                    "description": "Исключенные временные слоты",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "slot_time": {
-                    "description": "Длительность слота в минутах",
                     "type": "integer"
                 },
                 "start_time": {
-                    "description": "Время начала в формате \"15:04\"",
                     "type": "string"
                 }
             }
@@ -3108,7 +3067,6 @@
                     "type": "string"
                 },
                 "degree": {
-                    "description": "Степень",
                     "type": "string"
                 },
                 "field_of_study": {
@@ -3124,14 +3082,12 @@
                     "type": "integer"
                 },
                 "institution": {
-                    "description": "Учебное заведение",
                     "type": "string"
                 },
                 "specialist_id": {
                     "type": "integer"
                 },
                 "specialization": {
-                    "description": "Специальность",
                     "type": "string"
                 },
                 "to_year": {
@@ -3182,7 +3138,6 @@
             ],
             "properties": {
                 "login": {
-                    "description": "Email или телефон",
                     "type": "string"
                 },
                 "password": {
@@ -3264,53 +3219,42 @@
             "type": "object",
             "properties": {
                 "appointment_id": {
-                    "description": "ID консультации",
                     "type": "integer"
                 },
                 "attentiveness": {
-                    "description": "Внимательность",
                     "type": "integer"
                 },
                 "cleanliness": {
-                    "description": "Чистота",
                     "type": "integer"
                 },
                 "client_id": {
-                    "description": "ID клиента",
                     "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "grammar": {
-                    "description": "Грамотность",
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "is_recommended": {
-                    "description": "Рекомендует ли специалиста",
                     "type": "boolean"
                 },
                 "meeting_efficiency": {
-                    "description": "Эффективность встречи",
                     "type": "integer"
                 },
                 "price_quality": {
-                    "description": "Соотношение цена/качество",
                     "type": "integer"
                 },
                 "professionalism": {
-                    "description": "Профессионализм",
                     "type": "integer"
                 },
                 "rating": {
-                    "description": "Оценка от 1 до 5",
                     "type": "integer"
                 },
                 "reply_id": {
-                    "description": "ID ответа на отзыв",
                     "type": "integer"
                 },
                 "service_rating": {
@@ -3318,15 +3262,12 @@
                     "type": "integer"
                 },
                 "specialist_experience": {
-                    "description": "Опыт специалиста",
                     "type": "integer"
                 },
                 "specialist_id": {
-                    "description": "ID специалиста",
                     "type": "integer"
                 },
                 "text": {
-                    "description": "Текст отзыва",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3344,11 +3285,9 @@
                     "type": "string"
                 },
                 "end_time": {
-                    "description": "Время окончания рабочего дня (формат \"15:04\")",
                     "type": "string"
                 },
                 "exclude_times": {
-                    "description": "Исключенные временные слоты (формат \"15:04\")",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -3358,14 +3297,12 @@
                     "type": "integer"
                 },
                 "slot_time": {
-                    "description": "Длительность слота в минутах",
                     "type": "integer"
                 },
                 "specialist_id": {
                     "type": "integer"
                 },
                 "start_time": {
-                    "description": "Время начала рабочего дня (формат \"15:04\")",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3377,7 +3314,6 @@
             "type": "object",
             "properties": {
                 "association_member": {
-                    "description": "Состоит в ассоциации",
                     "type": "boolean"
                 },
                 "average_rating": {
@@ -3396,7 +3332,6 @@
                     }
                 },
                 "experience": {
-                    "description": "Опыт работы в годах",
                     "type": "integer"
                 },
                 "experience_years": {
@@ -3415,7 +3350,6 @@
                     "type": "number"
                 },
                 "recommendation_rate": {
-                    "description": "Процент рекомендаций",
                     "type": "integer"
                 },
                 "reviews_count": {
@@ -3453,10 +3387,6 @@
                 "lawyer",
                 "psychologist"
             ],
-            "x-enum-comments": {
-                "SpecialistTypeLawyer": "Юрист",
-                "SpecialistTypePsychologist": "Психолог"
-            },
             "x-enum-varnames": [
                 "SpecialistTypeLawyer",
                 "SpecialistTypePsychologist"
@@ -3469,27 +3399,19 @@
                     "type": "string"
                 },
                 "description": {
-                    "description": "Описание специализации",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "is_active": {
-                    "description": "Активна ли специализация",
                     "type": "boolean"
                 },
                 "name": {
-                    "description": "Название специализации",
                     "type": "string"
                 },
                 "type": {
-                    "description": "Тип специалиста (юрист/психолог)",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.SpecialistType"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.SpecialistType"
                 },
                 "updated_at": {
                     "type": "string"
@@ -3535,22 +3457,18 @@
             "type": "object",
             "properties": {
                 "end_time": {
-                    "description": "Время окончания в формате \"15:04\"",
                     "type": "string"
                 },
                 "exclude_times": {
-                    "description": "Исключенные временные слоты",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "slot_time": {
-                    "description": "Длительность слота в минутах",
                     "type": "integer"
                 },
                 "start_time": {
-                    "description": "Время начала в формате \"15:04\"",
                     "type": "string"
                 }
             }
@@ -3674,11 +3592,6 @@
                 "specialist",
                 "admin"
             ],
-            "x-enum-comments": {
-                "UserRoleAdmin": "Администратор",
-                "UserRoleClient": "Клиент",
-                "UserRoleSpecialist": "Специалист (юрист/психолог)"
-            },
             "x-enum-varnames": [
                 "UserRoleClient",
                 "UserRoleSpecialist",
@@ -3729,7 +3642,6 @@
                     "type": "string"
                 },
                 "end_year": {
-                    "description": "Null если текущее место работы",
                     "type": "integer"
                 },
                 "from_date": {

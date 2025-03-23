@@ -2703,28 +2703,16 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "appointment_date": {
-                    "description": "Дата и время консультации",
                     "type": "string"
                 },
                 "client_id": {
-                    "description": "ID клиента",
                     "type": "integer"
                 },
                 "communication_method": {
-                    "description": "Метод коммуникации",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.CommunicationMethod"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.CommunicationMethod"
                 },
                 "consultation_type": {
-                    "description": "Тип консультации",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.ConsultationType"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.ConsultationType"
                 },
                 "created_at": {
                     "type": "string"
@@ -2733,28 +2721,19 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "payment_id": {
-                    "description": "ID платежа",
                     "type": "string"
                 },
                 "price": {
-                    "description": "Стоимость консультации",
                     "type": "number"
                 },
                 "specialist_id": {
-                    "description": "ID специалиста",
                     "type": "integer"
                 },
                 "specialization_id": {
-                    "description": "ID специализации",
                     "type": "integer"
                 },
                 "status": {
-                    "description": "Статус записи",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.AppointmentStatus"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.AppointmentStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -2769,12 +2748,6 @@ const docTemplate = `{
                 "completed",
                 "cancelled"
             ],
-            "x-enum-comments": {
-                "AppointmentStatusCancelled": "Отменено",
-                "AppointmentStatusCompleted": "Завершено",
-                "AppointmentStatusPaid": "Оплачено",
-                "AppointmentStatusPending": "Ожидает оплаты"
-            },
             "x-enum-varnames": [
                 "AppointmentStatusPending",
                 "AppointmentStatusPaid",
@@ -2788,10 +2761,6 @@ const docTemplate = `{
                 "phone",
                 "whatsapp"
             ],
-            "x-enum-comments": {
-                "CommunicationMethodPhone": "Телефонный звонок",
-                "CommunicationMethodWhatsApp": "WhatsApp"
-            },
             "x-enum-varnames": [
                 "CommunicationMethodPhone",
                 "CommunicationMethodWhatsApp"
@@ -2803,10 +2772,6 @@ const docTemplate = `{
                 "primary",
                 "secondary"
             ],
-            "x-enum-comments": {
-                "ConsultationTypePrimary": "Первичная консультация",
-                "ConsultationTypeSecondary": "Вторичная консультация"
-            },
             "x-enum-varnames": [
                 "ConsultationTypePrimary",
                 "ConsultationTypeSecondary"
@@ -2920,7 +2885,6 @@ const docTemplate = `{
                     "minimum": 1
                 },
                 "service_rating": {
-                    "description": "Критерии оценки",
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 1
@@ -2948,26 +2912,21 @@ const docTemplate = `{
             ],
             "properties": {
                 "date": {
-                    "description": "Дата в формате \"2006-01-02\"",
                     "type": "string"
                 },
                 "end_time": {
-                    "description": "Время окончания в формате \"15:04\"",
                     "type": "string"
                 },
                 "exclude_times": {
-                    "description": "Исключенные временные слоты",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "slot_time": {
-                    "description": "Длительность слота в минутах",
                     "type": "integer"
                 },
                 "start_time": {
-                    "description": "Время начала в формате \"15:04\"",
                     "type": "string"
                 }
             }
@@ -3114,7 +3073,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "degree": {
-                    "description": "Степень",
                     "type": "string"
                 },
                 "field_of_study": {
@@ -3130,14 +3088,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "institution": {
-                    "description": "Учебное заведение",
                     "type": "string"
                 },
                 "specialist_id": {
                     "type": "integer"
                 },
                 "specialization": {
-                    "description": "Специальность",
                     "type": "string"
                 },
                 "to_year": {
@@ -3188,7 +3144,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "login": {
-                    "description": "Email или телефон",
                     "type": "string"
                 },
                 "password": {
@@ -3270,53 +3225,42 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "appointment_id": {
-                    "description": "ID консультации",
                     "type": "integer"
                 },
                 "attentiveness": {
-                    "description": "Внимательность",
                     "type": "integer"
                 },
                 "cleanliness": {
-                    "description": "Чистота",
                     "type": "integer"
                 },
                 "client_id": {
-                    "description": "ID клиента",
                     "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "grammar": {
-                    "description": "Грамотность",
                     "type": "integer"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "is_recommended": {
-                    "description": "Рекомендует ли специалиста",
                     "type": "boolean"
                 },
                 "meeting_efficiency": {
-                    "description": "Эффективность встречи",
                     "type": "integer"
                 },
                 "price_quality": {
-                    "description": "Соотношение цена/качество",
                     "type": "integer"
                 },
                 "professionalism": {
-                    "description": "Профессионализм",
                     "type": "integer"
                 },
                 "rating": {
-                    "description": "Оценка от 1 до 5",
                     "type": "integer"
                 },
                 "reply_id": {
-                    "description": "ID ответа на отзыв",
                     "type": "integer"
                 },
                 "service_rating": {
@@ -3324,15 +3268,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "specialist_experience": {
-                    "description": "Опыт специалиста",
                     "type": "integer"
                 },
                 "specialist_id": {
-                    "description": "ID специалиста",
                     "type": "integer"
                 },
                 "text": {
-                    "description": "Текст отзыва",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3350,11 +3291,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "end_time": {
-                    "description": "Время окончания рабочего дня (формат \"15:04\")",
                     "type": "string"
                 },
                 "exclude_times": {
-                    "description": "Исключенные временные слоты (формат \"15:04\")",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -3364,14 +3303,12 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "slot_time": {
-                    "description": "Длительность слота в минутах",
                     "type": "integer"
                 },
                 "specialist_id": {
                     "type": "integer"
                 },
                 "start_time": {
-                    "description": "Время начала рабочего дня (формат \"15:04\")",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3383,7 +3320,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "association_member": {
-                    "description": "Состоит в ассоциации",
                     "type": "boolean"
                 },
                 "average_rating": {
@@ -3402,7 +3338,6 @@ const docTemplate = `{
                     }
                 },
                 "experience": {
-                    "description": "Опыт работы в годах",
                     "type": "integer"
                 },
                 "experience_years": {
@@ -3421,7 +3356,6 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "recommendation_rate": {
-                    "description": "Процент рекомендаций",
                     "type": "integer"
                 },
                 "reviews_count": {
@@ -3459,10 +3393,6 @@ const docTemplate = `{
                 "lawyer",
                 "psychologist"
             ],
-            "x-enum-comments": {
-                "SpecialistTypeLawyer": "Юрист",
-                "SpecialistTypePsychologist": "Психолог"
-            },
             "x-enum-varnames": [
                 "SpecialistTypeLawyer",
                 "SpecialistTypePsychologist"
@@ -3475,27 +3405,19 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
-                    "description": "Описание специализации",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
                 "is_active": {
-                    "description": "Активна ли специализация",
                     "type": "boolean"
                 },
                 "name": {
-                    "description": "Название специализации",
                     "type": "string"
                 },
                 "type": {
-                    "description": "Тип специалиста (юрист/психолог)",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.SpecialistType"
-                        }
-                    ]
+                    "$ref": "#/definitions/domain.SpecialistType"
                 },
                 "updated_at": {
                     "type": "string"
@@ -3541,22 +3463,18 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "end_time": {
-                    "description": "Время окончания в формате \"15:04\"",
                     "type": "string"
                 },
                 "exclude_times": {
-                    "description": "Исключенные временные слоты",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "slot_time": {
-                    "description": "Длительность слота в минутах",
                     "type": "integer"
                 },
                 "start_time": {
-                    "description": "Время начала в формате \"15:04\"",
                     "type": "string"
                 }
             }
@@ -3680,11 +3598,6 @@ const docTemplate = `{
                 "specialist",
                 "admin"
             ],
-            "x-enum-comments": {
-                "UserRoleAdmin": "Администратор",
-                "UserRoleClient": "Клиент",
-                "UserRoleSpecialist": "Специалист (юрист/психолог)"
-            },
             "x-enum-varnames": [
                 "UserRoleClient",
                 "UserRoleSpecialist",
@@ -3735,7 +3648,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "end_year": {
-                    "description": "Null если текущее место работы",
                     "type": "integer"
                 },
                 "from_date": {
@@ -3817,7 +3729,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "94.247.129.222:8080",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "LAPS API",
