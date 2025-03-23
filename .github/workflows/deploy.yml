@@ -53,6 +53,9 @@ jobs:
       - name: Set lowercase repository owner
         run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       
+      - name: Set GitHub token
+        run: echo "GITHUB_TOKEN=${{ secrets.GIT_ACCESS_TOKEN }}" >> $GITHUB_ENV
+      
       - name: Create env file
         run: |
           cat > .env << EOF
@@ -97,8 +100,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: GITHUB_TOKEN,REPO_OWNER_LOWER
-          env:
-            GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
           script: |
             mkdir -p ~/laps
             cd ~/laps
