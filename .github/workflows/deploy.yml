@@ -25,7 +25,7 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal, ./cmd, ./pkg, ./migrations, ./configs"
+        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal/**, ./cmd/**, ./pkg/**, ./migrations/**, ./configs/**"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
         debug: true
         use_insecure_cipher: true
@@ -50,7 +50,7 @@ jobs:
         script: |
           cd /home/${{ secrets.SERVER_USER }}/laps-app
           
-          # Создаем временный файл для переменных окружения
+          # Экспортируем переменные окружения
           export HTTP_PORT=8080
           export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
           export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
@@ -59,6 +59,20 @@ jobs:
           export JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
           export LOG_LEVEL=info
           
+          # Проверяем наличие файлов и директорий
+          echo "Checking files and directories..."
+          ls -la
+          if [ ! -d "./cmd" ] || [ ! -d "./internal" ]; then
+            echo "ERROR: Required directories are missing!"
+            exit 1
+          fi
+          
+          # Проверяем содержимое Dockerfile
+          echo "Checking Dockerfile..."
+          cat Dockerfile
+          
+          # Собираем и запускаем приложение
+          echo "Building and running the application..."
           sudo docker-compose build
           sudo docker-compose down
           
