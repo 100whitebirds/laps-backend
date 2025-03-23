@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: "ghcr.io/${{ github.repository_owner }}/laps"
+  IMAGE_NAME: "ghcr.io/${{ github.repository_owner | lower }}/laps"
   IMAGE_TAG: "latest"
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GIT_ACCESS_TOKEN }}
       
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -82,7 +82,7 @@ jobs:
             LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
             EOF
             
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo ${{ secrets.GIT_ACCESS_TOKEN }} | docker login ghcr.io -u ${{ github.repository_owner | lower }} --password-stdin
             
             cat > docker-compose.yml << EOF
             version: '3.8'
