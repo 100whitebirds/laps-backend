@@ -12,30 +12,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-      
-    - name: Build Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: false
-        load: true
-        tags: laps-api:latest
+    - name: Set up environment file
+      run: |
+        cat > .env << EOF
+        HTTP_PORT=8080
+        POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+        POSTGRES_SSL_MODE=disable
+        JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+        LOG_LEVEL=info
+        EOF
         
-    - name: Save Docker image
-      run: docker save laps-api:latest > laps-api.tar
-      
     - name: Copy files to server
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "laps-api.tar,migrations/,docs/"
+        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, ./internal, ./cmd, ./pkg, ./migrations, ./configs"
         target: "/home/${{ secrets.SERVER_USER }}/laps-app"
-        strip_components: 0
-        overwrite: true
         
     - name: Deploy application
       uses: appleboy/ssh-action@master
@@ -43,48 +39,12 @@ jobs:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        envs: POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,JWT_SIGNING_KEY
-        environment:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
         script: |
           cd /home/${{ secrets.SERVER_USER }}/laps-app
-          
-          if [ ! -f "laps-api.tar" ]; then
-            echo "Error: laps-api.tar file not found"
-            exit 1
-          fi
-          
-          sudo docker load < laps-api.tar || { echo "Error loading Docker image"; exit 1; }
-          
-          sudo docker stop laps-api 2>/dev/null || true
-          sudo docker rm laps-api 2>/dev/null || true
-          
-          mkdir -p migrations docs
-          
-          sudo docker run -d \
-            --name laps-api \
-            --restart unless-stopped \
-            -p "8080:8080" \
-            -e POSTGRES_HOST=host.docker.internal \
-            -e POSTGRES_PORT=5432 \
-            -e POSTGRES_USER="${POSTGRES_USER}" \
-            -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
-            -e POSTGRES_DB="${POSTGRES_DB}" \
-            -e POSTGRES_SSL_MODE=disable \
-            -e JWT_SIGNING_KEY="${JWT_SIGNING_KEY}" \
-            -e LOG_LEVEL=info \
-            -v "$(pwd)/migrations:/app/migrations" \
-            -v "$(pwd)/docs:/app/docs" \
-            --add-host=host.docker.internal:host-gateway \
-            laps-api:latest || { echo "Error starting container"; exit 1; }
+          sudo docker-compose build
+          sudo docker-compose down
+          sudo docker-compose up -d
           
           sleep 10
           
-          sudo docker exec laps-api ./laps migrate || echo "Миграции не выполнены"
-          
-          sudo docker ps | grep laps-api || { echo "Container not running after deployment"; exit 1; }
-          
-          echo "Deployment completed successfully"
+          sudodocker-compose exec app ./laps migrate
