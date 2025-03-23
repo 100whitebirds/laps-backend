@@ -10,11 +10,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Docker
@@ -22,13 +22,15 @@ jobs:
 
       - name: Build Docker image
         run: |
+          # Изменим имя приложения, если оно замаскировано
+          if grep -q "\*\*\*" Dockerfile; then
+            sed -i 's/o \*\*\* \./o laps \./g' Dockerfile
+            sed -i 's|/app/\*\*\* \.|/app/laps \.|g' Dockerfile
+            sed -i 's|\["./\*\*\*"\]|["./laps"]|g' Dockerfile
+          fi
           docker build -t laps-app:latest .
+          docker save laps-app:latest > laps-app.tar
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
@@ -36,37 +38,38 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copy files to server
+      - name: Copy Docker image to server
         run: |
-          tar -czvf deploy.tar.gz * .github
-          scp -o StrictHostKeyChecking=no deploy.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /home/${{ secrets.SERVER_USER }}/laps-app && tar -xzvf /home/${{ secrets.SERVER_USER }}/deploy.tar.gz -C /home/${{ secrets.SERVER_USER }}/laps-app"
+          scp -o StrictHostKeyChecking=no laps-app.tar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
 
       - name: Deploy
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /home/${{ secrets.SERVER_USER }}/laps-app && \
-          cat > .env << EOF
-          HTTP_PORT=8080
-          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          POSTGRES_SSL_MODE=disable
-          JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
-          LOG_LEVEL=info
-          EOF
-          
-          # Исправление Dockerfile если имя приложения заменено маскировкой
-          if grep -q "\*\*\*" Dockerfile; then
-            sed -i 's/o \*\*\* \./o laps \./g' Dockerfile
-            sed -i 's|/app/\*\*\* \.|/app/laps \.|g' Dockerfile
-            sed -i 's|\["./\*\*\*"\]|["./laps"]|g' Dockerfile
-          fi
-          
-          # Сборка и запуск приложения
-          sudo docker-compose down
-          sudo docker-compose build
-          sudo docker-compose up -d
-          
-          # Ожидание запуска и вывод логов
-          sleep 10
-          sudo docker-compose logs --tail=50"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+            # Загрузка Docker образа
+            docker load < /home/${{ secrets.SERVER_USER }}/laps-app.tar
+            
+            # Остановка и удаление контейнера, если он существует
+            if [ \$(docker ps -a -q -f name=laps-app) ]; then
+              docker stop laps-app
+              docker rm laps-app
+            fi
+            
+            # Запуск нового контейнера
+            docker run -d --name laps-app \
+              -p 8080:8080 \
+              -e HTTP_PORT=8080 \
+              -e POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
+              -e POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}' \
+              -e POSTGRES_DB='${{ secrets.POSTGRES_DB }}' \
+              -e POSTGRES_SSL_MODE=disable \
+              -e JWT_SIGNING_KEY='${{ secrets.JWT_SIGNING_KEY }}' \
+              -e LOG_LEVEL=info \
+              laps-app:latest
+            
+            # Вывод логов для проверки
+            sleep 5
+            docker logs laps-app
+            
+            # Удаление tar-архива для экономии места
+            rm /home/${{ secrets.SERVER_USER }}/laps-app.tar
+          "
