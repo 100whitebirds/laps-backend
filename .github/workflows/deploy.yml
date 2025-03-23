@@ -53,8 +53,8 @@ jobs:
       - name: Set lowercase repository owner
         run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       
-      - name: Set GitHub token
-        run: echo "GITHUB_TOKEN=${{ secrets.GIT_ACCESS_TOKEN }}" >> $GITHUB_ENV
+      - name: Set registry token
+        run: echo "GHCR_TOKEN=${{ secrets.GIT_ACCESS_TOKEN }}" >> $GITHUB_ENV
       
       - name: Create env file
         run: |
@@ -99,7 +99,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GITHUB_TOKEN,REPO_OWNER_LOWER
+          envs: GHCR_TOKEN,REPO_OWNER_LOWER
           script: |
             mkdir -p ~/laps
             cd ~/laps
@@ -120,9 +120,7 @@ jobs:
             
             sudo docker-compose down || true
             
-            export GITHUB_TOKEN='$GITHUB_TOKEN'
-            
-            echo $GITHUB_TOKEN | sudo docker login ghcr.io -u $REPO_OWNER_LOWER --password-stdin
+            echo $GHCR_TOKEN | sudo docker login ghcr.io -u $REPO_OWNER_LOWER --password-stdin
             
             sudo docker-compose pull
             sudo docker-compose up -d
