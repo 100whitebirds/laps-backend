@@ -102,14 +102,14 @@ jobs:
           echo "Starting docker-compose up with environment variables..."
           # Создаём temporary env file только для запуска
           cat > .env.tmp << EOF
-HTTP_PORT=8080
-POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-POSTGRES_SSL_MODE=disable
-JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
-LOG_LEVEL=info
-EOF
+            HTTP_PORT=8080
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_SSL_MODE=disable
+            JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+            LOG_LEVEL=info
+          EOF
           sudo docker-compose --env-file .env.tmp up -d
           # Удаляем временный файл после запуска
           rm .env.tmp
