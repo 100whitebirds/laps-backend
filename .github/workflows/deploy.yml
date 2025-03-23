@@ -53,10 +53,64 @@ jobs:
       - name: Set lowercase repository owner
         run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       
-      - name: Generate image info
+      - name: Create Docker config
         run: |
-          echo "ghcr.io/$REPO_OWNER_LOWER/laps:latest" > image_name.txt
-          cat image_name.txt
+          mkdir -p docker_config
+          echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GIT_ACCESS_TOKEN }}" | base64)'"}}}' > docker_config/config.json
+          cat docker_config/config.json
+
+      - name: Create env file
+        run: |
+          cat > .env << EOF
+          APP_ENV=${{ secrets.APP_ENV || 'production' }}
+          APP_NAME=${{ secrets.APP_NAME || 'laps' }}
+          
+          # HTTP настройки
+          HTTP_PORT=${{ secrets.HTTP_PORT || '8080' }}
+          
+          # Postgres настройки
+          POSTGRES_HOST=${{ secrets.POSTGRES_HOST || 'localhost' }}
+          POSTGRES_PORT=${{ secrets.POSTGRES_PORT || '5432' }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB || 'laps' }}
+          POSTGRES_SSL_MODE=${{ secrets.POSTGRES_SSL_MODE || 'disable' }}
+          POSTGRES_MAX_CONNECTIONS=${{ secrets.POSTGRES_MAX_CONNECTIONS || '10' }}
+          POSTGRES_MAX_IDLE_CONNECTIONS=${{ secrets.POSTGRES_MAX_IDLE_CONNECTIONS || '2' }}
+          POSTGRES_MAX_LIFETIME=${{ secrets.POSTGRES_MAX_LIFETIME || '1h' }}
+          
+          # JWT настройки
+          JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+          
+          # Настройки логгирования
+          LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
+          EOF
+
+      - name: Create docker-compose file
+        run: |
+          cat > docker-compose.yml << EOF
+          version: '3.8'
+          
+          services:
+            app:
+              image: ghcr.io/$REPO_OWNER_LOWER/laps:latest
+              container_name: laps
+              restart: always
+              env_file:
+                - .env
+              ports:
+                - "\${HTTP_PORT:-8080}:8080"
+          EOF
+      
+      - name: Copy files to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ".env,docker-compose.yml,docker_config/config.json"
+          target: "~/laps"
+          strip_components: 0
       
       - name: Deploy to Server
         uses: appleboy/ssh-action@master
@@ -64,53 +118,14 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GIT_ACCESS_TOKEN,REPO_OWNER_LOWER
           script: |
-            mkdir -p ~/laps
+            mkdir -p ~/laps ~/.docker
+            cp ~/laps/docker_config/config.json ~/.docker/config.json
             cd ~/laps
             
-            cat > .env << EOF
-            APP_ENV=${{ secrets.APP_ENV || 'production' }}
-            APP_NAME=${{ secrets.APP_NAME || 'laps' }}
-            
-            # HTTP настройки
-            HTTP_PORT=${{ secrets.HTTP_PORT || '8080' }}
-            
-            # Postgres настройки
-            POSTGRES_HOST=${{ secrets.POSTGRES_HOST || 'localhost' }}
-            POSTGRES_PORT=${{ secrets.POSTGRES_PORT || '5432' }}
-            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB || 'laps' }}
-            POSTGRES_SSL_MODE=${{ secrets.POSTGRES_SSL_MODE || 'disable' }}
-            POSTGRES_MAX_CONNECTIONS=${{ secrets.POSTGRES_MAX_CONNECTIONS || '10' }}
-            POSTGRES_MAX_IDLE_CONNECTIONS=${{ secrets.POSTGRES_MAX_IDLE_CONNECTIONS || '2' }}
-            POSTGRES_MAX_LIFETIME=${{ secrets.POSTGRES_MAX_LIFETIME || '1h' }}
-            
-            # JWT настройки
-            JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
-            
-            # Настройки логгирования
-            LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
-            EOF
-            
-            echo "$GIT_ACCESS_TOKEN" | docker login ghcr.io -u "$REPO_OWNER_LOWER" --password-stdin
-            
-            cat > docker-compose.yml << EOF
-            version: '3.8'
-            
-            services:
-              app:
-                image: ghcr.io/$REPO_OWNER_LOWER/laps:latest
-                container_name: laps
-                restart: always
-                env_file:
-                  - .env
-                ports:
-                  - "\${HTTP_PORT:-8080}:8080"
-            EOF
-            
+            # Останавливаем старый контейнер
             sudo docker-compose down || true
             
+            # Скачиваем и запускаем новый контейнер
             sudo docker-compose pull
             sudo docker-compose up -d
