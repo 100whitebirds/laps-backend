@@ -53,12 +53,6 @@ jobs:
       - name: Set lowercase repository owner
         run: echo "REPO_OWNER_LOWER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       
-      - name: Create Docker config
-        run: |
-          mkdir -p docker_config
-          echo '{"auths":{"ghcr.io":{"auth":"'$(echo -n "${{ github.actor }}:${{ secrets.GIT_ACCESS_TOKEN }}" | base64)'"}}}' > docker_config/config.json
-          cat docker_config/config.json
-
       - name: Create env file
         run: |
           cat > .env << EOF
@@ -86,29 +80,13 @@ jobs:
           LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
           EOF
 
-      - name: Create docker-compose file
-        run: |
-          cat > docker-compose.yml << EOF
-          version: '3.8'
-          
-          services:
-            app:
-              image: ghcr.io/$REPO_OWNER_LOWER/laps:latest
-              container_name: laps
-              restart: always
-              env_file:
-                - .env
-              ports:
-                - "\${HTTP_PORT:-8080}:8080"
-          EOF
-      
       - name: Copy files to server
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: ".env,docker-compose.yml,docker_config/config.json"
+          source: ".env"
           target: "~/laps"
           strip_components: 0
       
@@ -118,14 +96,32 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_TOKEN,REPO_OWNER_LOWER
+          env:
+            GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
           script: |
-            mkdir -p ~/laps ~/.docker
-            cp ~/laps/docker_config/config.json ~/.docker/config.json
+            mkdir -p ~/laps
             cd ~/laps
             
-            # Останавливаем старый контейнер
+            cat > docker-compose.yml << EOF
+            version: '3.8'
+            
+            services:
+              app:
+                image: ghcr.io/$REPO_OWNER_LOWER/laps:latest
+                container_name: laps
+                restart: always
+                env_file:
+                  - .env
+                ports:
+                  - "\${HTTP_PORT:-8080}:8080"
+            EOF
+            
             sudo docker-compose down || true
             
-            # Скачиваем и запускаем новый контейнер
+            export GITHUB_TOKEN='$GITHUB_TOKEN'
+            
+            echo $GITHUB_TOKEN | sudo docker login ghcr.io -u $REPO_OWNER_LOWER --password-stdin
+            
             sudo docker-compose pull
             sudo docker-compose up -d
