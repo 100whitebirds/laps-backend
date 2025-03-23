@@ -78,7 +78,6 @@ jobs:
           sed -i 's/o \*\*\* \./o laps \./g' Dockerfile
           sed -i 's|/app/\*\*\* \.|/app/laps \.|g' Dockerfile
           sed -i 's|\["./\*\*\*"\]|["./laps"]|g' Dockerfile
-          sed -i 's|FROM golang:1.23-alpine|FROM golang:1.22-alpine|g' Dockerfile
           
           # Проверяем содержимое Dockerfile после исправления
           echo "Checking Dockerfile after fixes..."
@@ -101,14 +100,19 @@ jobs:
           
           # Запуск с передачей переменных окружения напрямую
           echo "Starting docker-compose up with environment variables..."
-          HTTP_PORT=8080 \
-          POSTGRES_USER="${POSTGRES_USER}" \
-          POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
-          POSTGRES_DB="${POSTGRES_DB}" \
-          POSTGRES_SSL_MODE=disable \
-          JWT_SIGNING_KEY="${JWT_SIGNING_KEY}" \
-          LOG_LEVEL=info \
-          sudo -E docker-compose up -d
+          # Создаём temporary env file только для запуска
+          cat > .env.tmp << EOF
+HTTP_PORT=8080
+POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+POSTGRES_SSL_MODE=disable
+JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+LOG_LEVEL=info
+EOF
+          sudo docker-compose --env-file .env.tmp up -d
+          # Удаляем временный файл после запуска
+          rm .env.tmp
           
           sleep 10
           
