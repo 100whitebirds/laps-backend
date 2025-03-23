@@ -66,7 +66,7 @@ jobs:
           HTTP_PORT=${{ secrets.HTTP_PORT || '8080' }}
           
           # Postgres настройки
-          POSTGRES_HOST=${{ secrets.POSTGRES_HOST || 'localhost' }}
+          POSTGRES_HOST=host.docker.internal
           POSTGRES_PORT=${{ secrets.POSTGRES_PORT || '5432' }}
           POSTGRES_USER=${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
@@ -112,10 +112,11 @@ jobs:
                 image: ghcr.io/$REPO_OWNER_LOWER/laps:latest
                 container_name: laps
                 restart: always
+                network_mode: "host"
                 env_file:
                   - .env
-                ports:
-                  - "\${HTTP_PORT:-8080}:8080"
+                extra_hosts:
+                  - "host.docker.internal:host-gateway"
             EOF
             
             sudo docker-compose down || true
