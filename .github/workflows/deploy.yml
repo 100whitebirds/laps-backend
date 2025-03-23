@@ -46,16 +46,16 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
             # Загрузка Docker образа
-            docker load < /home/${{ secrets.SERVER_USER }}/laps-app.tar
+            sudo docker load < /home/${{ secrets.SERVER_USER }}/laps-app.tar
             
             # Остановка и удаление контейнера, если он существует
-            if [ \$(docker ps -a -q -f name=laps-app) ]; then
-              docker stop laps-app
-              docker rm laps-app
+            if [ \$(sudo docker ps -a -q -f name=laps-app) ]; then
+              sudo docker stop laps-app
+              sudo docker rm laps-app
             fi
             
             # Запуск нового контейнера
-            docker run -d --name laps-app \
+            sudo docker run -d --name laps-app \
               -p 8080:8080 \
               -e HTTP_PORT=8080 \
               -e POSTGRES_USER='${{ secrets.POSTGRES_USER }}' \
@@ -68,7 +68,7 @@ jobs:
             
             # Вывод логов для проверки
             sleep 5
-            docker logs laps-app
+            sudo docker logs laps-app
             
             # Удаление tar-архива для экономии места
             rm /home/${{ secrets.SERVER_USER }}/laps-app.tar
