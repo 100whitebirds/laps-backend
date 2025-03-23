@@ -1,120 +1,72 @@
-name: Deploy to Production
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Setup known hosts
-      run: |
-        mkdir -p ~/.ssh
-        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-      
-    - name: Copy files to server
-      uses: appleboy/scp-action@master
-      id: scp
-      continue-on-error: true
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "go.mod, go.sum, docker-compose.yml, Dockerfile, main.go, ./internal/**, ./pkg/**, ./migrations/**, ./configs/**"
-        target: "/home/${{ secrets.SERVER_USER }}/laps-app"
-        debug: true
-        use_insecure_cipher: true
 
-    - name: Alternative file copy (if SCP fails)
-      if: steps.scp.outcome == 'failure'
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        tar -czvf app.tar.gz go.mod go.sum docker-compose.yml Dockerfile main.go ./internal ./pkg ./migrations ./configs
-        scp -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa app.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /home/${{ secrets.SERVER_USER }}/laps-app && tar -xzvf /home/${{ secrets.SERVER_USER }}/app.tar.gz -C /home/${{ secrets.SERVER_USER }}/laps-app"
-        
-    - name: Deploy application
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        use_insecure_cipher: true
-        script: |
-          cd /home/${{ secrets.SERVER_USER }}/laps-app
-          
-          # Экспортируем переменные окружения
-          export HTTP_PORT=8080
-          export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-          export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          export POSTGRES_SSL_MODE=disable
-          export JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
-          export LOG_LEVEL=info
-          
-          # Удаляем .env файл, если он существует
-          if [ -f ".env" ]; then
-            echo "Removing .env file..."
-            rm .env
-          fi
-          
-          # Проверяем наличие файлов и директорий
-          echo "Checking files and directories..."
-          ls -la
-          if [ ! -d "./internal" ] || [ ! -d "./pkg" ] || [ ! -d "./migrations" ]; then
-            echo "ERROR: Required directories are missing!"
-            exit 1
-          fi
-          
-          # Исправляем Dockerfile - заменяем *** на laps
-          echo "Fixing Dockerfile..."
-          sed -i 's/o \*\*\* \./o laps \./g' Dockerfile
-          sed -i 's|/app/\*\*\* \.|/app/laps \.|g' Dockerfile
-          sed -i 's|\["./\*\*\*"\]|["./laps"]|g' Dockerfile
-          
-          # Проверяем содержимое Dockerfile после исправления
-          echo "Checking Dockerfile after fixes..."
-          cat Dockerfile
-          
-          # Проверяем docker-compose.yml
-          echo "Checking docker-compose.yml..."
-          cat docker-compose.yml
-          
-          # Создаем main.go чтобы решить проблему с отсутствием Go файлов
-          echo "Creating main.go stub file..."
-          # Удаляем команду создания main.go, так как файл уже есть в проекте
-          
-          # Собираем и запускаем приложение
-          echo "Building and running the application..."
-          
-          echo "Starting docker-compose build..."
-          sudo docker-compose build
-          sudo docker-compose down
-          
-          # Запуск с передачей переменных окружения напрямую
-          echo "Starting docker-compose up with environment variables..."
-          # Создаём temporary env file только для запуска
-          cat > .env.tmp << EOF
-            HTTP_PORT=8080
-            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-            POSTGRES_SSL_MODE=disable
-            JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
-            LOG_LEVEL=info
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t laps-app:latest .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy files to server
+        run: |
+          tar -czvf deploy.tar.gz * .github
+          scp -o StrictHostKeyChecking=no deploy.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/home/${{ secrets.SERVER_USER }}/
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /home/${{ secrets.SERVER_USER }}/laps-app && tar -xzvf /home/${{ secrets.SERVER_USER }}/deploy.tar.gz -C /home/${{ secrets.SERVER_USER }}/laps-app"
+
+      - name: Deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /home/${{ secrets.SERVER_USER }}/laps-app && \
+          cat > .env << EOF
+          HTTP_PORT=8080
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          POSTGRES_SSL_MODE=disable
+          JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+          LOG_LEVEL=info
           EOF
-          sudo docker-compose --env-file .env.tmp up -d
-          # Удаляем временный файл после запуска
-          rm .env.tmp
           
+          # Исправление Dockerfile если имя приложения заменено маскировкой
+          if grep -q "\*\*\*" Dockerfile; then
+            sed -i 's/o \*\*\* \./o laps \./g' Dockerfile
+            sed -i 's|/app/\*\*\* \.|/app/laps \.|g' Dockerfile
+            sed -i 's|\["./\*\*\*"\]|["./laps"]|g' Dockerfile
+          fi
+          
+          # Сборка и запуск приложения
+          sudo docker-compose down
+          sudo docker-compose build
+          sudo docker-compose up -d
+          
+          # Ожидание запуска и вывод логов
           sleep 10
-          
-          echo "Running migrations..."
-          sudo docker-compose exec -T app ./laps migrate
+          sudo docker-compose logs --tail=50"
