@@ -10,7 +10,7 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - HTTP_PORT=${HTTP_PORT:-8080}
-      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -18,9 +18,31 @@ services:
       - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE:-disable}
       - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - S3_ENDPOINT=s3.amazonaws.com
+      - S3_REGION=eu-north-1
+      - S3_ACCESS_KEY_ID=AKIAYUQGSOFSTLIV7JE3
+      - S3_SECRET_ACCESS_KEY=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
+      - S3_BUCKET=lapsbucket2302
+      - S3_USE_SSL=true
     ports:
       - "${HTTP_PORT:-8080}:8080"
-    # networks:
-    #   - laps-network
+    depends_on:
+      - postgres
     volumes:
       - ./logs:/app/logs
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: laps-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-laps}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -247,7 +248,6 @@ func (h *Handler) getSpecialistReviewsRedirect(c *gin.Context) {
 	c.Redirect(http.StatusPermanentRedirect, targetURL)
 }
 
-
 func (h *Handler) updateSpecialistEducation(c *gin.Context) {
 	eduID := c.Param("eduId")
 
@@ -302,4 +302,218 @@ func (h *Handler) getMySpecialistProfile(c *gin.Context) {
 	}
 
 	successResponse(c, http.StatusOK, specialist)
+}
+
+// @Summary Загрузить фотографию профиля
+// @Description Загружает и устанавливает фотографию профиля специалиста
+// @Tags Специалисты
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path int true "ID специалиста"
+// @Param photo formData file true "Файл изображения"
+// @Success 200 {object} successResponseBody "Фотография успешно загружена"
+// @Failure 400 {object} errorResponseBody "Неверный формат ID, отсутствует файл или он не является изображением"
+// @Failure 401 {object} errorResponseBody "Не авторизован"
+// @Failure 403 {object} errorResponseBody "Доступ запрещен"
+// @Failure 404 {object} errorResponseBody "Специалист не найден"
+// @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /specialists/{id}/photo [post]
+func (h *Handler) uploadSpecialistPhoto(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "неверный формат ID")
+		return
+	}
+
+	specialist, err := h.services.Specialist.GetByID(c.Request.Context(), id)
+	if err != nil {
+		notFoundResponse(c, "специалист не найден")
+		return
+	}
+
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	userRole, err := getUserRole(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	if specialist.UserID != userID && userRole != domain.UserRoleAdmin {
+		forbiddenResponse(c)
+		return
+	}
+
+	file, header, err := c.Request.FormFile("photo")
+	if err != nil {
+		h.logger.Warn("ошибка получения файла из формы", zap.Error(err))
+		badRequestResponse(c, "не удалось получить файл")
+		return
+	}
+	defer file.Close()
+
+	const maxSize = 5 * 1024 * 1024
+	if header.Size > maxSize {
+		badRequestResponse(c, "файл слишком большой (максимальный размер 5 MB)")
+		return
+	}
+
+	buffer := make([]byte, 512)
+	_, err = file.Read(buffer)
+	if err != nil {
+		h.logger.Error("ошибка чтения файла", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, "ошибка чтения файла")
+		return
+	}
+
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		h.logger.Error("ошибка сброса указателя файла", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, "ошибка чтения файла")
+		return
+	}
+
+	fileType := http.DetectContentType(buffer)
+	if !strings.HasPrefix(fileType, "image/") {
+		badRequestResponse(c, "файл не является изображением")
+		return
+	}
+
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		h.logger.Error("ошибка чтения файла", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, "ошибка чтения файла")
+		return
+	}
+
+	err = h.services.Specialist.UploadProfilePhoto(c.Request.Context(), id, fileData, header.Filename)
+	if err != nil {
+		h.logger.Error("ошибка загрузки фото в хранилище", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, "ошибка загрузки фотографии")
+		return
+	}
+
+	successResponse(c, http.StatusOK, map[string]string{
+		"message": "фотография профиля успешно загружена",
+	})
+}
+
+// @Summary Удалить фотографию профиля
+// @Description Удаляет фотографию профиля специалиста
+// @Tags Специалисты
+// @Produce json
+// @Param id path int true "ID специалиста"
+// @Success 200 {object} successResponseBody "Фотография успешно удалена"
+// @Failure 400 {object} errorResponseBody "Неверный формат ID"
+// @Failure 401 {object} errorResponseBody "Не авторизован"
+// @Failure 403 {object} errorResponseBody "Доступ запрещен"
+// @Failure 404 {object} errorResponseBody "Специалист не найден"
+// @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /specialists/{id}/photo [delete]
+func (h *Handler) deleteSpecialistPhoto(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "неверный формат ID")
+		return
+	}
+
+	specialist, err := h.services.Specialist.GetByID(c.Request.Context(), id)
+	if err != nil {
+		notFoundResponse(c, "специалист не найден")
+		return
+	}
+
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	userRole, err := getUserRole(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	if specialist.UserID != userID && userRole != domain.UserRoleAdmin {
+		forbiddenResponse(c)
+		return
+	}
+
+	err = h.services.Specialist.DeleteProfilePhoto(c.Request.Context(), id)
+	if err != nil {
+		h.logger.Error("ошибка удаления фото", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, "ошибка удаления фотографии")
+		return
+	}
+
+	successResponse(c, http.StatusOK, map[string]string{
+		"message": "фотография профиля успешно удалена",
+	})
+}
+
+// @Summary Удалить специалиста
+// @Description Удаляет профиль специалиста
+// @Tags Специалисты
+// @Produce json
+// @Param id path int true "ID специалиста"
+// @Success 204 {object} nil "Профиль специалиста удален"
+// @Failure 400 {object} errorResponseBody "Неверный формат ID"
+// @Failure 401 {object} errorResponseBody "Не авторизован"
+// @Failure 403 {object} errorResponseBody "Доступ запрещен"
+// @Failure 404 {object} errorResponseBody "Специалист не найден"
+// @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /specialists/{id} [delete]
+func (h *Handler) deleteSpecialist(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "неверный формат ID")
+		return
+	}
+
+	specialist, err := h.services.Specialist.GetByID(c.Request.Context(), id)
+	if err != nil {
+		notFoundResponse(c, "специалист не найден")
+		return
+	}
+
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	userRole, err := getUserRole(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	if specialist.UserID != userID && userRole != domain.UserRoleAdmin {
+		forbiddenResponse(c)
+		return
+	}
+
+	if specialist.ProfilePhotoURL != "" {
+		err = h.services.Specialist.DeleteProfilePhoto(c.Request.Context(), id)
+		if err != nil {
+			h.logger.Error("ошибка удаления фото при удалении профиля", zap.Error(err))
+		}
+	}
+
+	err = h.services.Specialist.Delete(c.Request.Context(), id)
+	if err != nil {
+		h.logger.Error("ошибка удаления специалиста", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, "ошибка удаления специалиста")
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

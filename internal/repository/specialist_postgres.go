@@ -39,11 +39,12 @@ func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.Cr
 			experience_years, 
 			association_member, 
 			primary_consult_price, 
-			secondary_consult_price, 
+			secondary_consult_price,
+			profile_photo_url, 
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 		RETURNING id
 	`
 
@@ -59,6 +60,7 @@ func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.Cr
 		dto.AssociationMember,
 		dto.PrimaryConsultPrice,
 		dto.SecondaryConsultPrice,
+		"", // profile_photo_url будет обновлено позже, если фото предоставлено
 		now,
 	).Scan(&id)
 
@@ -78,7 +80,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		SELECT s.id, s.user_id, s.type, s.specialization, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
-		       s.is_verified, s.created_at, s.updated_at,
+		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
 			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
@@ -103,6 +105,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&specialist.PrimaryConsultPrice,
 		&specialist.SecondaryConsultPrice,
 		&specialist.IsVerified,
+		&specialist.ProfilePhotoURL,
 		&specialist.CreatedAt,
 		&specialist.UpdatedAt,
 		&user.ID,
@@ -606,4 +609,20 @@ func (r *SpecialistRepo) GetSpecializationsBySpecialistID(ctx context.Context, s
 	}
 
 	return specializations, nil
+}
+
+func (r *SpecialistRepo) UpdateProfilePhoto(ctx context.Context, id int64, photoURL string) error {
+	query := `
+		UPDATE specialists
+		SET profile_photo_url = $1,
+		    updated_at = $2
+		WHERE id = $3
+	`
+
+	_, err := r.db.Exec(ctx, query, photoURL, time.Now(), id)
+	if err != nil {
+		return fmt.Errorf("ошибка обновления фотографии профиля: %w", err)
+	}
+
+	return nil
 }
