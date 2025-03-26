@@ -1,15 +1,14 @@
--- Таблица расписания специалистов
 CREATE TABLE IF NOT EXISTS schedules (
     id BIGSERIAL PRIMARY KEY,
     specialist_id BIGINT NOT NULL REFERENCES specialists(id) ON DELETE CASCADE,
     date DATE NOT NULL,
-    start_time VARCHAR(5) NOT NULL, -- Формат "HH:MM"
-    end_time VARCHAR(5) NOT NULL, -- Формат "HH:MM"
-    slot_time INT NOT NULL CHECK (slot_time >= 10 AND slot_time <= 120), -- Длительность слота в минутах
-    exclude_times VARCHAR[] DEFAULT '{}', -- Исключенные временные слоты
+    start_time VARCHAR(5) NOT NULL,
+    end_time VARCHAR(5) NOT NULL,
+    slot_time INT NOT NULL CHECK (slot_time >= 10 AND slot_time <= 120),
+    exclude_times VARCHAR[] DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    UNIQUE (specialist_id, date) -- Уникальное расписание на день для специалиста
+    UNIQUE (specialist_id, date)
 );
 
 CREATE INDEX IF NOT EXISTS idx_schedules_specialist_id ON schedules(specialist_id);

@@ -16,6 +16,7 @@ import (
 	_ "laps/docs"
 	"laps/internal/repository"
 	"laps/internal/service"
+	"laps/internal/storage"
 	"laps/internal/transport/rest"
 	"laps/pkg/database"
 
@@ -35,7 +36,7 @@ import (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host 94.247.129.222:8080
+// @host localhost:8080
 // @BasePath /api/v1
 
 // @securityDefinitions.apikey ApiKeyAuth
@@ -65,12 +66,27 @@ func main() {
 	}
 	logger.Info("Миграции успешно выполнены")
 
+	var fileStorage storage.FileStorage
+	if cfg.S3.Endpoint != "" {
+		s3Storage, err := storage.NewS3Storage(cfg.S3, logger)
+		if err != nil {
+			logger.Fatal("Не удалось инициализировать S3 хранилище", zap.Error(err))
+		}
+		fileStorage = s3Storage
+		logger.Info("S3 хранилище успешно инициализировано", zap.String("endpoint", cfg.S3.Endpoint))
+	} else {
+		logger.Warn("S3 хранилище не настроено, функции загрузки файлов будут недоступны")
+		// Можно использовать заглушку или локальное хранилище, если S3 не настроено
+		// В данном случае просто пропускаем
+	}
+
 	repos := repository.NewRepositories(db)
 
 	services := service.NewServices(service.Deps{
-		Repos:  repos,
-		Logger: logger,
-		Config: cfg,
+		Repos:       repos,
+		Logger:      logger,
+		Config:      cfg,
+		FileStorage: fileStorage,
 	})
 
 	handler := rest.NewHandler(services, logger, cfg)

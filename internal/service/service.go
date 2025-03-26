@@ -8,12 +8,14 @@ import (
 	"laps/config"
 	"laps/internal/domain"
 	"laps/internal/repository"
+	"laps/internal/storage"
 )
 
 type Deps struct {
-	Repos  *repository.Repositories
-	Logger *zap.Logger
-	Config *config.Config
+	Repos       *repository.Repositories
+	Logger      *zap.Logger
+	Config      *config.Config
+	FileStorage storage.FileStorage
 }
 
 type Services struct {
@@ -31,8 +33,8 @@ func NewServices(deps Deps) *Services {
 		User:           NewUserService(deps.Repos.User, deps.Logger),
 		Auth:           NewAuthService(deps.Repos.Auth, deps.Repos.User, deps.Config.JWT, deps.Logger),
 		Specialization: NewSpecializationService(deps.Repos.Specialization, deps.Logger),
-		Review:         NewReviewService(deps.Repos.Review, deps.Repos.Specialist, deps.Repos.User, deps.Logger),
-		Specialist:     NewSpecialistService(deps.Repos.Specialist, deps.Repos.User, deps.Repos.Specialization, deps.Logger),
+		Review:         NewReviewService(deps.Repos.Review, deps.Repos.Specialist, deps.Repos.User, deps.Repos.Appointment, deps.Logger),
+		Specialist:     NewSpecialistService(deps.Repos.Specialist, deps.Repos.User, deps.Repos.Specialization, deps.FileStorage, deps.Logger),
 		Appointment:    NewAppointmentService(deps.Repos.Appointment, deps.Repos.Specialist, deps.Repos.User, deps.Logger),
 		Schedule:       NewScheduleService(deps.Repos.Schedule, deps.Repos.Specialist, deps.Logger),
 	}
@@ -54,6 +56,9 @@ type SpecialistService interface {
 	Update(ctx context.Context, id int64, dto domain.UpdateSpecialistDTO) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error)
+
+	UploadProfilePhoto(ctx context.Context, specialistID int64, photo []byte, filename string) error
+	DeleteProfilePhoto(ctx context.Context, specialistID int64) error
 
 	AddEducation(ctx context.Context, specialistID int64, dto domain.EducationDTO) (int64, error)
 	UpdateEducation(ctx context.Context, id int64, dto domain.EducationDTO) error

@@ -8,26 +8,30 @@ import (
 
 	"laps/internal/domain"
 	"laps/internal/repository"
+	"laps/internal/storage"
 )
 
 type SpecialistServiceImpl struct {
-	repo     repository.SpecialistRepository
-	userRepo repository.UserRepository
-	specRepo repository.SpecializationRepository
-	logger   *zap.Logger
+	repo        repository.SpecialistRepository
+	userRepo    repository.UserRepository
+	specRepo    repository.SpecializationRepository
+	fileStorage storage.FileStorage
+	logger      *zap.Logger
 }
 
 func NewSpecialistService(
 	repo repository.SpecialistRepository,
 	userRepo repository.UserRepository,
 	specRepo repository.SpecializationRepository,
+	fileStorage storage.FileStorage,
 	logger *zap.Logger,
 ) *SpecialistServiceImpl {
 	return &SpecialistServiceImpl{
-		repo:     repo,
-		userRepo: userRepo,
-		specRepo: specRepo,
-		logger:   logger,
+		repo:        repo,
+		userRepo:    userRepo,
+		specRepo:    specRepo,
+		fileStorage: fileStorage,
+		logger:      logger,
 	}
 }
 
@@ -53,6 +57,13 @@ func (s *SpecialistServiceImpl) Create(ctx context.Context, userID int64, dto do
 	if err != nil {
 		s.logger.Error("ошибка создания специалиста", zap.Error(err))
 		return 0, errors.New("ошибка при создании специалиста")
+	}
+
+	if len(dto.ProfilePhoto) > 0 {
+		err = s.UploadProfilePhoto(ctx, id, dto.ProfilePhoto, "profile.jpg")
+		if err != nil {
+			s.logger.Error("ошибка загрузки фото профиля", zap.Int64("specialistID", id), zap.Error(err))
+		}
 	}
 
 	return id, nil
@@ -127,7 +138,6 @@ func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain
 
 	return specialists, nil
 }
-
 
 func (s *SpecialistServiceImpl) AddEducation(ctx context.Context, specialistID int64, dto domain.EducationDTO) (int64, error) {
 	_, err := s.repo.GetByID(ctx, specialistID)
@@ -279,4 +289,65 @@ func (s *SpecialistServiceImpl) GetEducationByID(ctx context.Context, id int64) 
 	}
 
 	return education, nil
+}
+
+func (s *SpecialistServiceImpl) UploadProfilePhoto(ctx context.Context, specialistID int64, photo []byte, filename string) error {
+	_, err := s.repo.GetByID(ctx, specialistID)
+	if err != nil {
+		s.logger.Error("специалист не найден при загрузке фото", zap.Int64("specialistID", specialistID), zap.Error(err))
+		return errors.New("специалист не найден")
+	}
+
+	if len(photo) == 0 {
+		s.logger.Error("пустой файл фотографии", zap.Int64("specialistID", specialistID))
+		return errors.New("пустой файл фотографии")
+	}
+
+	photoURL, err := s.fileStorage.UploadFile(ctx, photo, filename)
+	if err != nil {
+		s.logger.Error("ошибка загрузки фото в хранилище", zap.Int64("specialistID", specialistID), zap.Error(err))
+		return errors.New("ошибка загрузки фотографии")
+	}
+
+	err = s.repo.UpdateProfilePhoto(ctx, specialistID, photoURL)
+	if err != nil {
+		s.logger.Error("ошибка обновления URL фото в БД", zap.Int64("specialistID", specialistID), zap.Error(err))
+
+		deleteErr := s.fileStorage.DeleteFile(ctx, photoURL)
+		if deleteErr != nil {
+			s.logger.Error("ошибка удаления фото после неудачного обновления URL",
+				zap.String("photoURL", photoURL), zap.Error(deleteErr))
+		}
+
+		return errors.New("ошибка сохранения информации о фотографии")
+	}
+
+	return nil
+}
+
+func (s *SpecialistServiceImpl) DeleteProfilePhoto(ctx context.Context, specialistID int64) error {
+	specialist, err := s.repo.GetByID(ctx, specialistID)
+	if err != nil {
+		s.logger.Error("специалист не найден при удалении фото", zap.Int64("specialistID", specialistID), zap.Error(err))
+		return errors.New("специалист не найден")
+	}
+
+	if specialist.ProfilePhotoURL == "" {
+		return nil
+	}
+
+	err = s.fileStorage.DeleteFile(ctx, specialist.ProfilePhotoURL)
+	if err != nil {
+		s.logger.Error("ошибка удаления фото из хранилища",
+			zap.String("photoURL", specialist.ProfilePhotoURL), zap.Error(err))
+	}
+
+	err = s.repo.UpdateProfilePhoto(ctx, specialistID, "")
+	if err != nil {
+		s.logger.Error("ошибка обновления URL фото в БД при удалении",
+			zap.Int64("specialistID", specialistID), zap.Error(err))
+		return errors.New("ошибка удаления информации о фотографии")
+	}
+
+	return nil
 }

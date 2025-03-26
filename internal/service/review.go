@@ -12,23 +12,26 @@ import (
 )
 
 type ReviewServiceImpl struct {
-	repo           repository.ReviewRepository
-	specialistRepo repository.SpecialistRepository
-	userRepo       repository.UserRepository
-	logger         *zap.Logger
+	repo            repository.ReviewRepository
+	specialistRepo  repository.SpecialistRepository
+	userRepo        repository.UserRepository
+	appointmentRepo repository.AppointmentRepository
+	logger          *zap.Logger
 }
 
 func NewReviewService(
 	repo repository.ReviewRepository,
 	specialistRepo repository.SpecialistRepository,
 	userRepo repository.UserRepository,
+	appointmentRepo repository.AppointmentRepository,
 	logger *zap.Logger,
 ) *ReviewServiceImpl {
 	return &ReviewServiceImpl{
-		repo:           repo,
-		specialistRepo: specialistRepo,
-		userRepo:       userRepo,
-		logger:         logger,
+		repo:            repo,
+		specialistRepo:  specialistRepo,
+		userRepo:        userRepo,
+		appointmentRepo: appointmentRepo,
+		logger:          logger,
 	}
 }
 
@@ -43,6 +46,49 @@ func (s *ReviewServiceImpl) Create(ctx context.Context, clientID int64, dto doma
 	if err != nil {
 		s.logger.Error("специалист не найден при создании отзыва", zap.Int64("specialistID", dto.SpecialistID), zap.Error(err))
 		return 0, errors.New("специалист не найден")
+	}
+
+	// Проверяем существование приема
+	appointment, err := s.appointmentRepo.GetByID(ctx, dto.AppointmentID)
+	if err != nil {
+		s.logger.Error("прием не найден при создании отзыва", zap.Int64("appointmentID", dto.AppointmentID), zap.Error(err))
+		return 0, errors.New("прием не найден")
+	}
+
+	// Проверяем, что прием принадлежит данному клиенту и специалисту
+	if appointment.ClientID != clientID || appointment.SpecialistID != dto.SpecialistID {
+		s.logger.Error("попытка создать отзыв для чужого приема",
+			zap.Int64("clientID", clientID),
+			zap.Int64("appointmentClientID", appointment.ClientID),
+			zap.Int64("specialistID", dto.SpecialistID),
+			zap.Int64("appointmentSpecialistID", appointment.SpecialistID))
+		return 0, errors.New("вы можете оставить отзыв только о специалисте, у которого были на приеме")
+	}
+
+	// Проверяем, что прием завершен
+	if appointment.Status != domain.AppointmentStatusCompleted {
+		s.logger.Error("попытка создать отзыв для незавершенного приема",
+			zap.String("status", string(appointment.Status)),
+			zap.Int64("appointmentID", appointment.ID))
+		return 0, errors.New("вы можете оставить отзыв только после завершения приема")
+	}
+
+	// Проверяем, не оставлял ли уже пользователь отзыв для этого приема
+	existingReviews, _, err := s.List(ctx, domain.ReviewFilter{
+		ClientID: &clientID,
+		Limit:    100,
+		Offset:   0,
+	})
+	if err != nil {
+		s.logger.Error("ошибка проверки существующих отзывов", zap.Error(err))
+		return 0, errors.New("ошибка при проверке существующих отзывов")
+	}
+
+	for _, review := range existingReviews {
+		if review.AppointmentID == dto.AppointmentID {
+			s.logger.Error("попытка создать повторный отзыв", zap.Int64("appointmentID", dto.AppointmentID))
+			return 0, errors.New("вы уже оставили отзыв для этого приема")
+		}
 	}
 
 	if dto.Rating < 1 || dto.Rating > 5 {

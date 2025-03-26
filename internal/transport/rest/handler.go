@@ -72,7 +72,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			{
 				auth.POST("/", h.createSpecialist)
 				auth.PUT("/:id", h.updateSpecialist)
-				// auth.DELETE("/:id", h.deleteSpecialist)
+				auth.DELETE("/:id", h.deleteSpecialist)
 
 				auth.PUT("/:id/education/:eduId", h.updateSpecialistEducation)
 				auth.DELETE("/:id/education/:eduId", h.deleteSpecialistEducation)
@@ -89,6 +89,9 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 				{
 					specialistRoutes.GET("/appointments", h.getSpecialistAppointments)
 				}
+
+				auth.POST("/:id/photo", h.uploadSpecialistPhoto)
+				auth.DELETE("/:id/photo", h.deleteSpecialistPhoto)
 			}
 		}
 

@@ -13,6 +13,7 @@ type Config struct {
 	HTTP        HTTPConfig
 	Postgres    PostgresConfig
 	JWT         JWTConfig
+	S3          S3Config
 }
 
 type HTTPConfig struct {
@@ -38,6 +39,15 @@ type JWTConfig struct {
 	SigningKey      string
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
+}
+
+type S3Config struct {
+	Endpoint        string
+	Region          string
+	AccessKeyID     string
+	SecretAccessKey string
+	Bucket          string
+	UseSSL          bool
 }
 
 func NewConfig() (*Config, error) {
@@ -91,6 +101,14 @@ func NewConfig() (*Config, error) {
 			SigningKey:      getEnv("JWT_SIGNING_KEY", "your_secret_key"),
 			AccessTokenTTL:  jwtAccessTokenTTL,
 			RefreshTokenTTL: jwtRefreshTokenTTL,
+		},
+		S3: S3Config{
+			Endpoint:        getEnv("S3_ENDPOINT", ""),
+			Region:          getEnv("S3_REGION", "us-east-1"),
+			AccessKeyID:     getEnv("S3_ACCESS_KEY_ID", ""),
+			SecretAccessKey: getEnv("S3_SECRET_ACCESS_KEY", ""),
+			Bucket:          getEnv("S3_BUCKET", "laps"),
+			UseSSL:          getEnv("S3_USE_SSL", "true") == "true",
 		},
 	}, nil
 }

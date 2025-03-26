@@ -50,6 +50,8 @@ type SpecialistRepository interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error)
 
+	UpdateProfilePhoto(ctx context.Context, id int64, photoURL string) error
+
 	AddEducation(ctx context.Context, specialistID int64, education domain.EducationDTO) (int64, error)
 	UpdateEducation(ctx context.Context, id int64, education domain.EducationDTO) error
 	DeleteEducation(ctx context.Context, id int64) error

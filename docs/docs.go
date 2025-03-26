@@ -1915,6 +1915,201 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет профиль специалиста",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Специалисты"
+                ],
+                "summary": "Удалить специалиста",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Профиль специалиста удален"
+                    },
+                    "400": {
+                        "description": "Неверный формат ID",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/specialists/{id}/photo": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Загружает и устанавливает фотографию профиля специалиста",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Специалисты"
+                ],
+                "summary": "Загрузить фотографию профиля",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Файл изображения",
+                        "name": "photo",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Фотография успешно загружена",
+                        "schema": {
+                            "$ref": "#/definitions/rest.successResponseBody"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID, отсутствует файл или он не является изображением",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет фотографию профиля специалиста",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Специалисты"
+                ],
+                "summary": "Удалить фотографию профиля",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Фотография успешно удалена",
+                        "schema": {
+                            "$ref": "#/definitions/rest.successResponseBody"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
             }
         },
         "/specialists/{id}/reviews": {
@@ -3352,6 +3547,9 @@ const docTemplate = `{
                 "primary_consult_price": {
                     "type": "number"
                 },
+                "profile_photo_url": {
+                    "type": "string"
+                },
                 "rating": {
                     "type": "number"
                 },
@@ -3715,6 +3913,18 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "rest.successResponseBody": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -3729,7 +3939,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "94.247.129.222:8080",
+	Host:             "localhost:8080",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "LAPS API",

@@ -444,6 +444,8 @@ definitions:
         type: boolean
       primary_consult_price:
         type: number
+      profile_photo_url:
+        type: string
       rating:
         type: number
       recommendation_rate:
@@ -684,7 +686,15 @@ definitions:
       total_pages:
         type: integer
     type: object
-host: 94.247.129.222:8080
+  rest.successResponseBody:
+    properties:
+      data: {}
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:8080
 info:
   contact:
     email: support@swagger.io
@@ -1820,6 +1830,44 @@ paths:
       tags:
       - Специалисты
   /specialists/{id}:
+    delete:
+      description: Удаляет профиль специалиста
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Профиль специалиста удален
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить специалиста
+      tags:
+      - Специалисты
     get:
       consumes:
       - application/json
@@ -1896,6 +1944,94 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Обновить специалиста
+      tags:
+      - Специалисты
+  /specialists/{id}/photo:
+    delete:
+      description: Удаляет фотографию профиля специалиста
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Фотография успешно удалена
+          schema:
+            $ref: '#/definitions/rest.successResponseBody'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить фотографию профиля
+      tags:
+      - Специалисты
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает и устанавливает фотографию профиля специалиста
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Файл изображения
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Фотография успешно загружена
+          schema:
+            $ref: '#/definitions/rest.successResponseBody'
+        "400":
+          description: Неверный формат ID, отсутствует файл или он не является изображением
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Загрузить фотографию профиля
       tags:
       - Специалисты
   /specialists/{id}/reviews:
