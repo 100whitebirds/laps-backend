@@ -15,7 +15,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "94.247.129.222:8080",
     "basePath": "/api/v1",
     "paths": {
         "/appointments": {

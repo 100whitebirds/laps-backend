@@ -694,7 +694,7 @@ definitions:
       status:
         type: string
     type: object
-host: localhost:8080
+host: 94.247.129.222:8080
 info:
   contact:
     email: support@swagger.io
