@@ -100,7 +100,7 @@ func (r *AppointmentRepo) Create(ctx context.Context, clientID int64, dto domain
 
 func (r *AppointmentRepo) GetByID(ctx context.Context, id int64) (*domain.Appointment, error) {
 	query := `
-		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
+		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.price, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
 		       u.first_name AS user_first_name, u.last_name AS user_last_name,
 		       s.type AS specialist_type,
 		       su.first_name AS specialist_first_name, su.last_name AS specialist_last_name
@@ -120,6 +120,7 @@ func (r *AppointmentRepo) GetByID(ctx context.Context, id int64) (*domain.Appoin
 		&appointment.ClientID,
 		&appointment.SpecialistID,
 		&appointment.SpecializationID,
+		&appointment.Price,
 		&appointment.AppointmentDate,
 		&appointment.Status,
 		&appointment.ConsultationType,
@@ -525,7 +526,7 @@ func (r *AppointmentRepo) CountByFilter(ctx context.Context, filter domain.Appoi
 
 func (r *AppointmentRepo) List(ctx context.Context, filter domain.AppointmentFilter) ([]domain.Appointment, error) {
 	baseQuery := `
-		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
+		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.price, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
 		       u.first_name AS user_first_name, u.last_name AS user_last_name,
 		       s.type AS specialist_type,
 		       su.first_name AS specialist_first_name, su.last_name AS specialist_last_name
@@ -600,6 +601,7 @@ func (r *AppointmentRepo) List(ctx context.Context, filter domain.AppointmentFil
 			&appointment.ClientID,
 			&appointment.SpecialistID,
 			&appointment.SpecializationID,
+			&appointment.Price,
 			&appointment.AppointmentDate,
 			&appointment.Status,
 			&appointment.ConsultationType,
