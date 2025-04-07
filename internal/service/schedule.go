@@ -38,47 +38,72 @@ func (s *ScheduleServiceImpl) Create(ctx context.Context, specialistID int64, dt
 		return 0, errors.New("специалист не найден")
 	}
 
-	date, err := time.Parse("2006-01-02", dto.Date)
-	if err != nil {
-		s.logger.Error("неверный формат даты", zap.Error(err))
-		return 0, errors.New("неверный формат даты")
-	}
-
-	_, err = time.Parse("15:04", dto.StartTime)
-	if err != nil {
-		s.logger.Error("неверный формат времени начала", zap.Error(err))
-		return 0, errors.New("неверный формат времени начала")
-	}
-
-	_, err = time.Parse("15:04", dto.EndTime)
-	if err != nil {
-		s.logger.Error("неверный формат времени окончания", zap.Error(err))
-		return 0, errors.New("неверный формат времени окончания")
-	}
-
 	if dto.SlotTime < 10 || dto.SlotTime > 120 {
 		s.logger.Error("недопустимая длительность слота", zap.Int("slot_time", dto.SlotTime))
 		return 0, errors.New("длительность слота должна быть от 10 до 120 минут")
 	}
 
-	schedule := domain.Schedule{
-		SpecialistID: specialistID,
-		Date:         date,
-		StartTime:    dto.StartTime,
-		EndTime:      dto.EndTime,
-		SlotTime:     dto.SlotTime,
-		ExcludeTimes: dto.ExcludeTimes,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+	// Создаем расписание на неделю вперед
+	now := time.Now()
+	startDate := now.AddDate(0, 0, -int(now.Weekday())+1) // Начало текущей недели
+	var lastID int64
+
+	for i := 0; i < 7; i++ {
+		currentDate := startDate.AddDate(0, 0, i)
+		var daySchedule *domain.DaySchedule
+
+		switch i {
+		case 0:
+			daySchedule = dto.WeekSchedule.Monday
+		case 1:
+			daySchedule = dto.WeekSchedule.Tuesday
+		case 2:
+			daySchedule = dto.WeekSchedule.Wednesday
+		case 3:
+			daySchedule = dto.WeekSchedule.Thursday
+		case 4:
+			daySchedule = dto.WeekSchedule.Friday
+		case 5:
+			daySchedule = dto.WeekSchedule.Saturday
+		case 6:
+			daySchedule = dto.WeekSchedule.Sunday
+		}
+
+		if daySchedule != nil && len(daySchedule.WorkTime) > 0 {
+			for _, slot := range daySchedule.WorkTime {
+				_, err = time.Parse("15:04", slot.StartTime)
+				if err != nil {
+					s.logger.Error("неверный формат времени начала", zap.Error(err))
+					return 0, errors.New("неверный формат времени начала")
+				}
+
+				_, err = time.Parse("15:04", slot.EndTime)
+				if err != nil {
+					s.logger.Error("неверный формат времени окончания", zap.Error(err))
+					return 0, errors.New("неверный формат времени окончания")
+				}
+
+				schedule := domain.Schedule{
+					SpecialistID: specialistID,
+					Date:         currentDate,
+					StartTime:    slot.StartTime,
+					EndTime:      slot.EndTime,
+					SlotTime:     dto.SlotTime,
+					CreatedAt:    time.Now(),
+					UpdatedAt:    time.Now(),
+				}
+
+				id, err := s.repo.Create(ctx, schedule)
+				if err != nil {
+					s.logger.Error("ошибка создания расписания", zap.Error(err))
+					return 0, fmt.Errorf("ошибка создания расписания: %w", err)
+				}
+				lastID = id
+			}
+		}
 	}
 
-	id, err := s.repo.Create(ctx, schedule)
-	if err != nil {
-		s.logger.Error("ошибка создания расписания", zap.Error(err))
-		return 0, fmt.Errorf("ошибка создания расписания: %w", err)
-	}
-
-	return id, nil
+	return lastID, nil
 }
 
 func (s *ScheduleServiceImpl) GetByID(ctx context.Context, id int64) (*domain.Schedule, error) {

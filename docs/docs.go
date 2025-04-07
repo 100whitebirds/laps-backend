@@ -3100,29 +3100,15 @@ const docTemplate = `{
         "domain.CreateScheduleDTO": {
             "type": "object",
             "required": [
-                "date",
-                "end_time",
                 "slot_time",
-                "start_time"
+                "week_schedule"
             ],
             "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "end_time": {
-                    "type": "string"
-                },
-                "exclude_times": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "slot_time": {
                     "type": "integer"
                 },
-                "start_time": {
-                    "type": "string"
+                "week_schedule": {
+                    "$ref": "#/definitions/domain.WeekSchedule"
                 }
             }
         },
@@ -3258,6 +3244,17 @@ const docTemplate = `{
                             "$ref": "#/definitions/domain.UserRole"
                         }
                     ]
+                }
+            }
+        },
+        "domain.DaySchedule": {
+            "type": "object",
+            "properties": {
+                "work_time": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.WorkTimeSlot"
+                    }
                 }
             }
         },
@@ -3802,6 +3799,32 @@ const docTemplate = `{
                 "UserRoleAdmin"
             ]
         },
+        "domain.WeekSchedule": {
+            "type": "object",
+            "properties": {
+                "friday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                },
+                "monday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                },
+                "saturday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                },
+                "sunday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                },
+                "thursday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                },
+                "tuesday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                },
+                "wednesday": {
+                    "$ref": "#/definitions/domain.DaySchedule"
+                }
+            }
+        },
         "domain.WorkExperienceDTO": {
             "type": "object",
             "required": [
@@ -3867,6 +3890,21 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.WorkTimeSlot": {
+            "type": "object",
+            "required": [
+                "end_time",
+                "start_time"
+            ],
+            "properties": {
+                "end_time": {
+                    "type": "string"
+                },
+                "start_time": {
                     "type": "string"
                 }
             }

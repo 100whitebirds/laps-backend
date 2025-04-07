@@ -16,12 +16,28 @@ type Schedule struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+type WorkTimeSlot struct {
+	StartTime string `json:"start_time" binding:"required"`
+	EndTime   string `json:"end_time" binding:"required"`
+}
+
+type DaySchedule struct {
+	WorkTime []WorkTimeSlot `json:"work_time"`
+}
+
+type WeekSchedule struct {
+	Monday    *DaySchedule `json:"monday,omitempty"`
+	Tuesday   *DaySchedule `json:"tuesday,omitempty"`
+	Wednesday *DaySchedule `json:"wednesday,omitempty"`
+	Thursday  *DaySchedule `json:"thursday,omitempty"`
+	Friday    *DaySchedule `json:"friday,omitempty"`
+	Saturday  *DaySchedule `json:"saturday,omitempty"`
+	Sunday    *DaySchedule `json:"sunday,omitempty"`
+}
+
 type CreateScheduleDTO struct {
-	Date         string   `json:"date" binding:"required"`
-	StartTime    string   `json:"start_time" binding:"required"`
-	EndTime      string   `json:"end_time" binding:"required"`
-	SlotTime     int      `json:"slot_time" binding:"required"`
-	ExcludeTimes []string `json:"exclude_times,omitempty"`
+	WeekSchedule WeekSchedule `json:"week_schedule" binding:"required"`
+	SlotTime     int          `json:"slot_time" binding:"required"`
 }
 
 type UpdateScheduleDTO struct {
@@ -37,4 +53,4 @@ type ScheduleFilter struct {
 	EndDate      *time.Time `json:"end_date"`
 	Limit        int        `json:"limit"`
 	Offset       int        `json:"offset"`
-} 
+}

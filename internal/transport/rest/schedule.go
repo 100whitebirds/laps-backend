@@ -45,22 +45,34 @@ func (h *Handler) createSchedule(c *gin.Context) {
 		return
 	}
 
-	_, err = time.Parse("2006-01-02", req.Date)
-	if err != nil {
-		badRequestResponse(c, "неверный формат даты, ожидается YYYY-MM-DD")
-		return
+	// Валидация временных слотов
+	weekSchedule := req.WeekSchedule
+	days := []*domain.DaySchedule{
+		weekSchedule.Monday,
+		weekSchedule.Tuesday,
+		weekSchedule.Wednesday,
+		weekSchedule.Thursday,
+		weekSchedule.Friday,
+		weekSchedule.Saturday,
+		weekSchedule.Sunday,
 	}
 
-	_, err = time.Parse("15:04", req.StartTime)
-	if err != nil {
-		badRequestResponse(c, "неверный формат времени начала, ожидается HH:MM")
-		return
-	}
+	for _, day := range days {
+		if day != nil {
+			for _, slot := range day.WorkTime {
+				_, err = time.Parse("15:04", slot.StartTime)
+				if err != nil {
+					badRequestResponse(c, "неверный формат времени начала, ожидается HH:MM")
+					return
+				}
 
-	_, err = time.Parse("15:04", req.EndTime)
-	if err != nil {
-		badRequestResponse(c, "неверный формат времени окончания, ожидается HH:MM")
-		return
+				_, err = time.Parse("15:04", slot.EndTime)
+				if err != nil {
+					badRequestResponse(c, "неверный формат времени окончания, ожидается HH:MM")
+					return
+				}
+			}
+		}
 	}
 
 	if req.SlotTime < 10 || req.SlotTime > 120 {

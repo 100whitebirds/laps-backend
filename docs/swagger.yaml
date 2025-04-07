@@ -145,23 +145,13 @@ definitions:
     type: object
   domain.CreateScheduleDTO:
     properties:
-      date:
-        type: string
-      end_time:
-        type: string
-      exclude_times:
-        items:
-          type: string
-        type: array
       slot_time:
         type: integer
-      start_time:
-        type: string
+      week_schedule:
+        $ref: '#/definitions/domain.WeekSchedule'
     required:
-    - date
-    - end_time
     - slot_time
-    - start_time
+    - week_schedule
     type: object
   domain.CreateSpecialistDTO:
     properties:
@@ -252,6 +242,13 @@ definitions:
     - password
     - phone
     - role
+    type: object
+  domain.DaySchedule:
+    properties:
+      work_time:
+        items:
+          $ref: '#/definitions/domain.WorkTimeSlot'
+        type: array
     type: object
   domain.Education:
     properties:
@@ -612,6 +609,23 @@ definitions:
     - UserRoleClient
     - UserRoleSpecialist
     - UserRoleAdmin
+  domain.WeekSchedule:
+    properties:
+      friday:
+        $ref: '#/definitions/domain.DaySchedule'
+      monday:
+        $ref: '#/definitions/domain.DaySchedule'
+      saturday:
+        $ref: '#/definitions/domain.DaySchedule'
+      sunday:
+        $ref: '#/definitions/domain.DaySchedule'
+      thursday:
+        $ref: '#/definitions/domain.DaySchedule'
+      tuesday:
+        $ref: '#/definitions/domain.DaySchedule'
+      wednesday:
+        $ref: '#/definitions/domain.DaySchedule'
+    type: object
   domain.WorkExperienceDTO:
     properties:
       company:
@@ -657,6 +671,16 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  domain.WorkTimeSlot:
+    properties:
+      end_time:
+        type: string
+      start_time:
+        type: string
+    required:
+    - end_time
+    - start_time
     type: object
   rest.errorResponseBody:
     properties:
