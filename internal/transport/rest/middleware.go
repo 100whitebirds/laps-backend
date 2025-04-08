@@ -67,23 +67,13 @@ func (h *Handler) corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
-		allowedOrigins := []string{"http://localhost:3000", "https://localhost:3000"}
-		allowedOrigin := "*"
-
-		for _, o := range allowedOrigins {
-			if origin == o {
-				allowedOrigin = origin
-				break
-			}
-		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, DNT, Referer, User-Agent")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Authorization")
-
-		if allowedOrigin != "*" {
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Origin, Accept, User-Agent, X-Requested-With, Cache-Control, DNT, Referer")
+			c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Authorization, Content-Type")
+			c.Writer.Header().Set("Access-Control-Max-Age", "86400") // 24 часа
 		}
 
 		if c.Request.Method == "OPTIONS" {
