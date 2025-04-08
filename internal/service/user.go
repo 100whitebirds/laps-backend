@@ -62,6 +62,16 @@ func (s *UserServiceImpl) GetByID(ctx context.Context, id int64) (*domain.User, 
 	return user, nil
 }
 
+func (s *UserServiceImpl) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		s.logger.Error("ошибка получения пользователя по email", zap.String("email", email), zap.Error(err))
+		return nil, errors.New("пользователь не найден")
+	}
+
+	return user, nil
+}
+
 func (s *UserServiceImpl) Update(ctx context.Context, id int64, dto domain.UpdateUserDTO) error {
 	_, err := s.repo.GetByID(ctx, id)
 	if err != nil {

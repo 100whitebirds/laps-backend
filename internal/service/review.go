@@ -48,14 +48,12 @@ func (s *ReviewServiceImpl) Create(ctx context.Context, clientID int64, dto doma
 		return 0, errors.New("специалист не найден")
 	}
 
-	// Проверяем существование приема
 	appointment, err := s.appointmentRepo.GetByID(ctx, dto.AppointmentID)
 	if err != nil {
 		s.logger.Error("прием не найден при создании отзыва", zap.Int64("appointmentID", dto.AppointmentID), zap.Error(err))
 		return 0, errors.New("прием не найден")
 	}
 
-	// Проверяем, что прием принадлежит данному клиенту и специалисту
 	if appointment.ClientID != clientID || appointment.SpecialistID != dto.SpecialistID {
 		s.logger.Error("попытка создать отзыв для чужого приема",
 			zap.Int64("clientID", clientID),
@@ -65,7 +63,6 @@ func (s *ReviewServiceImpl) Create(ctx context.Context, clientID int64, dto doma
 		return 0, errors.New("вы можете оставить отзыв только о специалисте, у которого были на приеме")
 	}
 
-	// Проверяем, что прием завершен
 	if appointment.Status != domain.AppointmentStatusCompleted {
 		s.logger.Error("попытка создать отзыв для незавершенного приема",
 			zap.String("status", string(appointment.Status)),
@@ -73,7 +70,6 @@ func (s *ReviewServiceImpl) Create(ctx context.Context, clientID int64, dto doma
 		return 0, errors.New("вы можете оставить отзыв только после завершения приема")
 	}
 
-	// Проверяем, не оставлял ли уже пользователь отзыв для этого приема
 	existingReviews, _, err := s.List(ctx, domain.ReviewFilter{
 		ClientID: &clientID,
 		Limit:    100,

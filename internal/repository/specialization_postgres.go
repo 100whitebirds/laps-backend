@@ -152,18 +152,15 @@ func (r *SpecializationRepo) List(ctx context.Context, filter domain.Specializat
 		argID++
 	}
 
-	// Конструируем WHERE часть запроса
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	// Добавляем LIMIT и OFFSET
 	limitOffset := fmt.Sprintf("LIMIT $%d OFFSET $%d", argID, argID+1)
 	args = append(args, filter.Limit, filter.Offset)
 	argID += 2
 
-	// Формируем полный запрос
 	query := fmt.Sprintf(`
 		SELECT id, name, description, type, is_active, created_at, updated_at
 		FROM specializations

@@ -139,78 +139,6 @@ func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain
 	return specialists, nil
 }
 
-func (s *SpecialistServiceImpl) AddEducation(ctx context.Context, specialistID int64, dto domain.EducationDTO) (int64, error) {
-	_, err := s.repo.GetByID(ctx, specialistID)
-	if err != nil {
-		s.logger.Error("специалист не найден при добавлении образования", zap.Int64("specialistID", specialistID), zap.Error(err))
-		return 0, errors.New("специалист не найден")
-	}
-
-	id, err := s.repo.AddEducation(ctx, specialistID, dto)
-	if err != nil {
-		s.logger.Error("ошибка добавления образования", zap.Error(err))
-		return 0, errors.New("ошибка при добавлении образования")
-	}
-
-	return id, nil
-}
-
-func (s *SpecialistServiceImpl) UpdateEducation(ctx context.Context, id int64, dto domain.EducationDTO) error {
-	err := s.repo.UpdateEducation(ctx, id, dto)
-	if err != nil {
-		s.logger.Error("ошибка обновления образования", zap.Int64("id", id), zap.Error(err))
-		return errors.New("ошибка при обновлении образования")
-	}
-
-	return nil
-}
-
-func (s *SpecialistServiceImpl) DeleteEducation(ctx context.Context, id int64) error {
-	err := s.repo.DeleteEducation(ctx, id)
-	if err != nil {
-		s.logger.Error("ошибка удаления образования", zap.Int64("id", id), zap.Error(err))
-		return errors.New("ошибка при удалении образования")
-	}
-
-	return nil
-}
-
-func (s *SpecialistServiceImpl) AddWorkExperience(ctx context.Context, specialistID int64, dto domain.WorkExperienceDTO) (int64, error) {
-	_, err := s.repo.GetByID(ctx, specialistID)
-	if err != nil {
-		s.logger.Error("специалист не найден при добавлении опыта работы", zap.Int64("specialistID", specialistID), zap.Error(err))
-		return 0, errors.New("специалист не найден")
-	}
-
-	id, err := s.repo.AddWorkExperience(ctx, specialistID, dto)
-	if err != nil {
-		s.logger.Error("ошибка добавления опыта работы", zap.Error(err))
-		return 0, errors.New("ошибка при добавлении опыта работы")
-	}
-
-	return id, nil
-}
-
-func (s *SpecialistServiceImpl) UpdateWorkExperience(ctx context.Context, id int64, dto domain.WorkExperienceDTO) error {
-	err := s.repo.UpdateWorkExperience(ctx, id, dto)
-	if err != nil {
-		s.logger.Error("ошибка обновления опыта работы", zap.Int64("id", id), zap.Error(err))
-		return errors.New("ошибка при обновлении опыта работы")
-	}
-
-	return nil
-}
-
-func (s *SpecialistServiceImpl) DeleteWorkExperience(ctx context.Context, id int64) error {
-	err := s.repo.DeleteWorkExperience(ctx, id)
-	if err != nil {
-		s.logger.Error("ошибка удаления опыта работы", zap.Int64("id", id), zap.Error(err))
-		return errors.New("ошибка при удалении опыта работы")
-	}
-
-	return nil
-}
-
 func (s *SpecialistServiceImpl) AddSpecialization(ctx context.Context, specialistID, specializationID int64) error {
 	_, err := s.repo.GetByID(ctx, specialistID)
 	if err != nil {
@@ -263,32 +191,6 @@ func (s *SpecialistServiceImpl) GetSpecializationsBySpecialistID(ctx context.Con
 	}
 
 	return specializations, nil
-}
-
-func (s *SpecialistServiceImpl) GetEducationBySpecialistID(ctx context.Context, specialistID int64) ([]domain.Education, error) {
-	_, err := s.repo.GetByID(ctx, specialistID)
-	if err != nil {
-		s.logger.Error("специалист не найден при получении образования", zap.Int64("specialistID", specialistID), zap.Error(err))
-		return nil, errors.New("специалист не найден")
-	}
-
-	education, err := s.repo.GetEducationBySpecialistID(ctx, specialistID)
-	if err != nil {
-		s.logger.Error("ошибка при получении образования специалиста", zap.Int64("specialistID", specialistID), zap.Error(err))
-		return nil, err
-	}
-
-	return education, nil
-}
-
-func (s *SpecialistServiceImpl) GetEducationByID(ctx context.Context, id int64) (*domain.Education, error) {
-	education, err := s.repo.GetEducationByID(ctx, id)
-	if err != nil {
-		s.logger.Error("ошибка при получении образования", zap.Int64("id", id), zap.Error(err))
-		return nil, err
-	}
-
-	return education, nil
 }
 
 func (s *SpecialistServiceImpl) UploadProfilePhoto(ctx context.Context, specialistID int64, photo []byte, filename string) error {

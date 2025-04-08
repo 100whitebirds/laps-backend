@@ -77,7 +77,6 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 				auth.PUT("/:id/education/:eduId", h.updateSpecialistEducation)
 				auth.DELETE("/:id/education/:eduId", h.deleteSpecialistEducation)
 
-				auth.POST("/:id/work-experience", h.addSpecialistWorkExperience)
 				auth.PUT("/:id/work-experience/:expId", h.updateSpecialistWorkExperience)
 				auth.DELETE("/:id/work-experience/:expId", h.deleteSpecialistWorkExperience)
 
@@ -95,23 +94,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			}
 		}
 
-		schedules := api.Group("/schedules")
-		{
-			schedules.GET("/free-slots", h.getFreeSlots)
-
-			auth := schedules.Group("/", h.authMiddleware())
-			{
-				auth.GET("/", h.getSchedules)
-				auth.GET("/:id", h.getScheduleByID)
-
-				specialistRoutes := auth.Group("/", h.specialistMiddleware())
-				{
-					specialistRoutes.POST("/", h.createSchedule)
-					specialistRoutes.PUT("/:id", h.updateSchedule)
-					specialistRoutes.DELETE("/:id", h.deleteSchedule)
-				}
-			}
-		}
+		h.initScheduleRoutes(api)
 
 		appointments := api.Group("/appointments")
 		{
@@ -167,6 +150,45 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 				auth.POST("/", h.addEducation)
 				auth.PUT("/:id", h.updateEducation)
 				auth.DELETE("/:id", h.deleteEducation)
+			}
+		}
+
+		workExperience := api.Group("/work-experience")
+		{
+			workExperience.GET("/", h.getWorkExperience)
+			workExperience.GET("/:id", h.getWorkExperienceByID)
+
+			auth := workExperience.Group("/")
+			auth.Use(h.authMiddleware())
+			{
+				auth.POST("/", h.addWorkExperience)
+				auth.PUT("/:id", h.updateWorkExperience)
+				auth.DELETE("/:id", h.deleteWorkExperience)
+			}
+		}
+
+		// REST compliant routes for specialists
+		specialists.POST("/:id/work-experience", h.authMiddleware(), h.addWorkExperienceToSpecialist)
+		specialists.POST("/:id/education", h.authMiddleware(), h.addEducationToSpecialist)
+	}
+}
+
+func (h *Handler) initScheduleRoutes(api *gin.RouterGroup) {
+	schedules := api.Group("/schedules")
+	{
+		schedules.GET("/free-slots", h.getFreeSlots)
+		schedules.GET("/week", h.getScheduleWeek)
+
+		auth := schedules.Group("/", h.authMiddleware())
+		{
+			auth.GET("/", h.getSchedules)
+			auth.GET("/:id", h.getScheduleByID)
+
+			specialistRoutes := auth.Group("/", h.specialistMiddleware())
+			{
+				specialistRoutes.POST("/", h.createSchedule)
+				specialistRoutes.PUT("/", h.updateSchedule)
+				specialistRoutes.DELETE("/:id", h.deleteSchedule)
 			}
 		}
 	}

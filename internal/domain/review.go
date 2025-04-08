@@ -13,7 +13,6 @@ type Review struct {
 	Text          string `json:"text"`
 	IsRecommended bool   `json:"is_recommended"`
 
-	// Критерии оценки
 	ServiceRating        *int `json:"service_rating"`
 	MeetingEfficiency    *int `json:"meeting_efficiency"`
 	Professionalism      *int `json:"professionalism"`

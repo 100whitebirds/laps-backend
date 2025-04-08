@@ -383,7 +383,6 @@ definitions:
       reply_id:
         type: integer
       service_rating:
-        description: Критерии оценки
         type: integer
       specialist_experience:
         type: integer
@@ -515,16 +514,12 @@ definitions:
     type: object
   domain.UpdateScheduleDTO:
     properties:
-      end_time:
-        type: string
-      exclude_times:
-        items:
-          type: string
-        type: array
       slot_time:
         type: integer
-      start_time:
-        type: string
+      week_schedule:
+        $ref: '#/definitions/domain.WeekSchedule'
+    required:
+    - week_schedule
     type: object
   domain.UpdateSpecialistDTO:
     properties:
@@ -1561,9 +1556,10 @@ paths:
       - application/json
       responses:
         "200":
-          description: Список расписаний с пагинацией
+          description: Расписание в формате недельного расписания
           schema:
-            $ref: '#/definitions/rest.paginatedResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Ошибка валидации данных
           schema:
@@ -1619,6 +1615,45 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Создать расписание
+      tags:
+      - Расписание
+    put:
+      consumes:
+      - application/json
+      description: Обновляет расписание специалиста на неделю
+      parameters:
+      - description: Данные для обновления расписания
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateScheduleDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Сообщение об успешном обновлении
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить расписание
       tags:
       - Расписание
   /schedules/{id}:
@@ -1698,54 +1733,6 @@ paths:
       summary: Получить расписание по ID
       tags:
       - Расписание
-    put:
-      consumes:
-      - application/json
-      description: Обновляет существующее расписание
-      parameters:
-      - description: ID расписания
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Данные для обновления расписания
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/domain.UpdateScheduleDTO'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Сообщение об успешном обновлении
-          schema:
-            $ref: '#/definitions/rest.messageResponseType'
-        "400":
-          description: Ошибка валидации данных
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
-        "401":
-          description: Не авторизован
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
-        "403":
-          description: Доступ запрещен
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
-        "404":
-          description: Расписание не найдено
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
-      security:
-      - ApiKeyAuth: []
-      summary: Обновить расписание
-      tags:
-      - Расписание
   /schedules/free-slots:
     get:
       description: Возвращает список свободных временных слотов на выбранную дату
@@ -1777,6 +1764,45 @@ paths:
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
       summary: Получить свободные слоты специалиста
+      tags:
+      - Расписание
+  /schedules/week:
+    get:
+      description: Возвращает расписание специалиста на неделю в структурированном
+        виде
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      - description: Начало недели (YYYY-MM-DD), если не указано - текущая неделя
+        in: query
+        name: week_start
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Недельное расписание
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации данных
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Получить недельное расписание специалиста
       tags:
       - Расписание
   /specialists:
@@ -1970,6 +1996,56 @@ paths:
       summary: Обновить специалиста
       tags:
       - Специалисты
+  /specialists/{id}/education:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую запись об образовании для специалиста
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные об образовании
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.EducationDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданной записи об образовании
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить образование специалисту по ID (REST-совместимый метод)
+      tags:
+      - Образование
   /specialists/{id}/photo:
     delete:
       description: Удаляет фотографию профиля специалиста
@@ -2097,6 +2173,56 @@ paths:
       tags:
       - Специалисты
       - Отзывы
+  /specialists/{id}/work-experience:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую запись об опыте работы для специалиста
+      parameters:
+      - description: ID специалиста
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные об опыте работы
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.WorkExperienceDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданной записи об опыте работы
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить опыт работы специалисту по ID
+      tags:
+      - Опыт работы
   /specialists/me:
     get:
       consumes:
@@ -2593,6 +2719,211 @@ paths:
       summary: Получить текущего пользователя
       tags:
       - Пользователи
+  /work-experience:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список опыта работы указанного специалиста
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список опыта работы
+          schema:
+            items:
+              $ref: '#/definitions/domain.WorkPlace'
+            type: array
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить список опыта работы специалиста
+      tags:
+      - Опыт работы
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую запись об опыте работы для специалиста
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      - description: Данные об опыте работы
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.WorkExperienceDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: ID созданной записи об опыте работы
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Специалист не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить опыт работы специалисту
+      tags:
+      - Опыт работы
+  /work-experience/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет запись об опыте работы
+      parameters:
+      - description: ID опыта работы
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Опыт работы успешно удален
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Опыт работы не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить опыт работы
+      tags:
+      - Опыт работы
+    get:
+      consumes:
+      - application/json
+      description: Возвращает детальную информацию об опыте работы по его ID
+      parameters:
+      - description: ID опыта работы
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные об опыте работы
+          schema:
+            $ref: '#/definitions/domain.WorkPlace'
+        "400":
+          description: Неверный формат ID
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Опыт работы не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить информацию об опыте работы по ID
+      tags:
+      - Опыт работы
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию об опыте работы
+      parameters:
+      - description: ID опыта работы
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые данные об опыте работы
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.WorkExperienceDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Опыт работы успешно обновлен
+          schema:
+            $ref: '#/definitions/rest.messageResponseType'
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "403":
+          description: Доступ запрещен
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Опыт работы не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить опыт работы
+      tags:
+      - Опыт работы
 securityDefinitions:
   ApiKeyAuth:
     in: header

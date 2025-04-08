@@ -65,11 +65,26 @@ func (h *Handler) errorMiddleware() gin.HandlerFunc {
 
 func (h *Handler) corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+
+		allowedOrigins := []string{"http://localhost:3000", "https://localhost:3000"}
+		allowedOrigin := "*"
+
+		for _, o := range allowedOrigins {
+			if origin == o {
+				allowedOrigin = origin
+				break
+			}
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, DNT, Referer, User-Agent")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Authorization")
+
+		if allowedOrigin != "*" {
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)

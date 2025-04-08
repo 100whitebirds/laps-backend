@@ -62,6 +62,7 @@ type SpecialistRepository interface {
 	UpdateWorkExperience(ctx context.Context, id int64, workExperience domain.WorkExperienceDTO) error
 	DeleteWorkExperience(ctx context.Context, id int64) error
 	GetWorkExperienceBySpecialistID(ctx context.Context, specialistID int64) ([]domain.WorkPlace, error)
+	GetWorkExperienceByID(ctx context.Context, id int64) (*domain.WorkPlace, error)
 
 	AddSpecialization(ctx context.Context, specialistID, specializationID int64) error
 	RemoveSpecialization(ctx context.Context, specialistID, specializationID int64) error

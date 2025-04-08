@@ -1305,9 +1305,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Список расписаний с пагинацией",
+                        "description": "Расписание в формате недельного расписания",
                         "schema": {
-                            "$ref": "#/definitions/rest.paginatedResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1318,6 +1319,67 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет расписание специалиста на неделю",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Расписание"
+                ],
+                "summary": "Обновить расписание",
+                "parameters": [
+                    {
+                        "description": "Данные для обновления расписания",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateScheduleDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Сообщение об успешном обновлении",
+                        "schema": {
+                            "$ref": "#/definitions/rest.messageResponseType"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации данных",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -1442,6 +1504,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/schedules/week": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Возвращает расписание специалиста на неделю в структурированном виде",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Расписание"
+                ],
+                "summary": "Получить недельное расписание специалиста",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "specialist_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Начало недели (YYYY-MM-DD), если не указано - текущая неделя",
+                        "name": "week_start",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Недельное расписание",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации данных",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/schedules/{id}": {
             "get": {
                 "security": [
@@ -1481,80 +1602,6 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "404": {
-                        "description": "Расписание не найдено",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Обновляет существующее расписание",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Расписание"
-                ],
-                "summary": "Обновить расписание",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID расписания",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Данные для обновления расписания",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.UpdateScheduleDTO"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Сообщение об успешном обновлении",
-                        "schema": {
-                            "$ref": "#/definitions/rest.messageResponseType"
-                        }
-                    },
-                    "400": {
-                        "description": "Ошибка валидации данных",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "403": {
-                        "description": "Доступ запрещен",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -1976,6 +2023,83 @@ const docTemplate = `{
                 }
             }
         },
+        "/specialists/{id}/education": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Добавляет новую запись об образовании для специалиста",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Образование"
+                ],
+                "summary": "Добавить образование специалисту по ID (REST-совместимый метод)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные об образовании",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.EducationDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "ID созданной записи об образовании",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/specialists/{id}/photo": {
             "post": {
                 "security": [
@@ -2156,6 +2280,83 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Неверный формат ID",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/specialists/{id}/work-experience": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Добавляет новую запись об опыте работы для специалиста",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Опыт работы"
+                ],
+                "summary": "Добавить опыт работы специалисту по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные об опыте работы",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.WorkExperienceDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "ID созданной записи об опыте работы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -2891,6 +3092,320 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/work-experience": {
+            "get": {
+                "description": "Возвращает список опыта работы указанного специалиста",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Опыт работы"
+                ],
+                "summary": "Получить список опыта работы специалиста",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "specialist_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список опыта работы",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.WorkPlace"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Добавляет новую запись об опыте работы для специалиста",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Опыт работы"
+                ],
+                "summary": "Добавить опыт работы специалисту",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "specialist_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные об опыте работы",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.WorkExperienceDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "ID созданной записи об опыте работы",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Специалист не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/work-experience/{id}": {
+            "get": {
+                "description": "Возвращает детальную информацию об опыте работы по его ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Опыт работы"
+                ],
+                "summary": "Получить информацию об опыте работы по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID опыта работы",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Данные об опыте работы",
+                        "schema": {
+                            "$ref": "#/definitions/domain.WorkPlace"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Опыт работы не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет информацию об опыте работы",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Опыт работы"
+                ],
+                "summary": "Обновить опыт работы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID опыта работы",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые данные об опыте работы",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.WorkExperienceDTO"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Опыт работы успешно обновлен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.messageResponseType"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Опыт работы не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Удаляет запись об опыте работы",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Опыт работы"
+                ],
+                "summary": "Удалить опыт работы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID опыта работы",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Опыт работы успешно удален"
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Опыт работы не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3456,7 +3971,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "service_rating": {
-                    "description": "Критерии оценки",
                     "type": "integer"
                 },
                 "specialist_experience": {
@@ -3656,21 +4170,15 @@ const docTemplate = `{
         },
         "domain.UpdateScheduleDTO": {
             "type": "object",
+            "required": [
+                "week_schedule"
+            ],
             "properties": {
-                "end_time": {
-                    "type": "string"
-                },
-                "exclude_times": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "slot_time": {
                     "type": "integer"
                 },
-                "start_time": {
-                    "type": "string"
+                "week_schedule": {
+                    "$ref": "#/definitions/domain.WeekSchedule"
                 }
             }
         },

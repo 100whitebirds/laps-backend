@@ -41,7 +41,7 @@ func (h *Handler) getEducation(c *gin.Context) {
 		return
 	}
 
-	education, err := h.services.Specialist.GetEducationBySpecialistID(c.Request.Context(), specialistID)
+	education, err := h.services.Education.GetEducationBySpecialistID(c.Request.Context(), specialistID)
 	if err != nil {
 		h.logger.Error("ошибка при получении образования", zap.Error(err))
 		errorResponse(c, http.StatusInternalServerError, "ошибка при получении образования")
@@ -110,7 +110,7 @@ func (h *Handler) addEducation(c *gin.Context) {
 		return
 	}
 
-	educationID, err := h.services.Specialist.AddEducation(c.Request.Context(), specialistID, req)
+	educationID, err := h.services.Education.AddEducation(c.Request.Context(), specialistID, req)
 	if err != nil {
 		h.logger.Error("ошибка при добавлении образования", zap.Error(err))
 		errorResponse(c, http.StatusInternalServerError, err.Error())
@@ -140,7 +140,7 @@ func (h *Handler) getEducationByID(c *gin.Context) {
 		return
 	}
 
-	education, err := h.services.Specialist.GetEducationByID(c.Request.Context(), id)
+	education, err := h.services.Education.GetEducationByID(c.Request.Context(), id)
 	if err != nil {
 		h.logger.Error("ошибка при получении образования", zap.Error(err))
 		notFoundResponse(c, "образование не найдено")
@@ -178,7 +178,7 @@ func (h *Handler) updateEducation(c *gin.Context) {
 		return
 	}
 
-	education, err := h.services.Specialist.GetEducationByID(c.Request.Context(), id)
+	education, err := h.services.Education.GetEducationByID(c.Request.Context(), id)
 	if err != nil {
 		h.logger.Error("образование не найдено", zap.Error(err))
 		notFoundResponse(c, "образование не найдено")
@@ -210,7 +210,7 @@ func (h *Handler) updateEducation(c *gin.Context) {
 		return
 	}
 
-	err = h.services.Specialist.UpdateEducation(c.Request.Context(), id, req)
+	err = h.services.Education.UpdateEducation(c.Request.Context(), id, req)
 	if err != nil {
 		h.logger.Error("ошибка при обновлении образования", zap.Error(err))
 		errorResponse(c, http.StatusInternalServerError, err.Error())
@@ -247,7 +247,7 @@ func (h *Handler) deleteEducation(c *gin.Context) {
 		return
 	}
 
-	education, err := h.services.Specialist.GetEducationByID(c.Request.Context(), id)
+	education, err := h.services.Education.GetEducationByID(c.Request.Context(), id)
 	if err != nil {
 		h.logger.Error("образование не найдено", zap.Error(err))
 		notFoundResponse(c, "образование не найдено")
@@ -272,7 +272,7 @@ func (h *Handler) deleteEducation(c *gin.Context) {
 		return
 	}
 
-	err = h.services.Specialist.DeleteEducation(c.Request.Context(), id)
+	err = h.services.Education.DeleteEducation(c.Request.Context(), id)
 	if err != nil {
 		h.logger.Error("ошибка при удалении образования", zap.Error(err))
 		errorResponse(c, http.StatusInternalServerError, err.Error())
@@ -280,4 +280,101 @@ func (h *Handler) deleteEducation(c *gin.Context) {
 	}
 
 	noContentResponse(c)
+}
+
+func (h *Handler) updateSpecialistEducation(c *gin.Context) {
+	educationID := c.Param("eduId")
+	h.logger.Info("перенаправление запроса на обновление образования",
+		zap.String("educationID", educationID),
+		zap.String("oldPath", c.Request.URL.Path))
+
+	// Формируем путь к новому эндпоинту
+	targetURL := "/api/v1/education/" + educationID
+	h.logger.Info("новый путь запроса", zap.String("targetURL", targetURL))
+
+	// Обновляем URL запроса
+	c.Request.URL.Path = targetURL
+	c.Request.RequestURI = targetURL
+
+	h.updateEducation(c)
+}
+
+func (h *Handler) deleteSpecialistEducation(c *gin.Context) {
+	educationID := c.Param("eduId")
+	h.logger.Info("перенаправление запроса на удаление образования",
+		zap.String("educationID", educationID),
+		zap.String("oldPath", c.Request.URL.Path))
+
+	targetURL := "/api/v1/education/" + educationID
+	h.logger.Info("новый путь запроса", zap.String("targetURL", targetURL))
+	
+	c.Request.URL.Path = targetURL
+	c.Request.RequestURI = targetURL
+
+	h.deleteEducation(c)
+}
+
+// @Summary Добавить образование специалисту по ID (REST-совместимый метод)
+// @Description Добавляет новую запись об образовании для специалиста
+// @Tags Образование
+// @Accept json
+// @Produce json
+// @Param id path int true "ID специалиста"
+// @Param input body domain.EducationDTO true "Данные об образовании"
+// @Success 201 {object} map[string]interface{} "ID созданной записи об образовании"
+// @Failure 400 {object} errorResponseBody "Ошибка валидации"
+// @Failure 401 {object} errorResponseBody "Не авторизован"
+// @Failure 403 {object} errorResponseBody "Доступ запрещен"
+// @Failure 404 {object} errorResponseBody "Специалист не найден"
+// @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /specialists/{id}/education [post]
+func (h *Handler) addEducationToSpecialist(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	specialistID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "неверный формат ID специалиста")
+		return
+	}
+
+	specialist, err := h.services.Specialist.GetByID(c.Request.Context(), specialistID)
+	if err != nil {
+		h.logger.Error("специалист не найден", zap.Int64("id", specialistID), zap.Error(err))
+		notFoundResponse(c, "специалист не найден")
+		return
+	}
+
+	userRole, err := getUserRole(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	if specialist.UserID != userID && userRole != domain.UserRoleAdmin {
+		forbiddenResponse(c)
+		return
+	}
+
+	var req domain.EducationDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.logger.Warn("неверный формат данных", zap.Error(err))
+		badRequestResponse(c, "неверный формат данных")
+		return
+	}
+
+	educationID, err := h.services.Education.AddEducation(c.Request.Context(), specialistID, req)
+	if err != nil {
+		h.logger.Error("ошибка при добавлении образования", zap.Error(err))
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	createdResponse(c, map[string]interface{}{
+		"id": educationID,
+	})
 }

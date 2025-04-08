@@ -60,7 +60,7 @@ type WorkPlace struct {
 	Position     string     `json:"position"`
 	StartYear    int        `json:"start_year"`
 	EndYear      *int       `json:"end_year"`
-	FromDate     time.Time  `json:"from_date"`
+	FromDate     *time.Time `json:"from_date"`
 	ToDate       *time.Time `json:"to_date"`
 	Description  string     `json:"description"`
 	CreatedAt    time.Time  `json:"created_at"`
@@ -109,7 +109,7 @@ type WorkExperienceDTO struct {
 	Position    string     `json:"position" binding:"required"`
 	StartYear   int        `json:"start_year" binding:"required"`
 	EndYear     *int       `json:"end_year"`
-	FromDate    time.Time  `json:"from_date"`
+	FromDate    *time.Time `json:"from_date"`
 	ToDate      *time.Time `json:"to_date"`
 	Description string     `json:"description"`
 }

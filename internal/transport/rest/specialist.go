@@ -1,11 +1,9 @@
 package rest
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -246,34 +244,6 @@ func (h *Handler) getSpecialistReviewsRedirect(c *gin.Context) {
 
 	targetURL := fmt.Sprintf("/api/v1/reviews?specialist_id=%s&limit=%s&offset=%s", id, limit, offset)
 	c.Redirect(http.StatusPermanentRedirect, targetURL)
-}
-
-func (h *Handler) updateSpecialistEducation(c *gin.Context) {
-	eduID := c.Param("eduId")
-
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		h.logger.Error("ошибка чтения тела запроса", zap.Error(err))
-		badRequestResponse(c, "неверный формат данных")
-		return
-	}
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-
-	targetURL := fmt.Sprintf("/api/v1/education/%s", eduID)
-	c.Request.URL, _ = url.Parse(targetURL)
-	c.Request.RequestURI = targetURL
-
-	h.updateEducation(c)
-}
-
-func (h *Handler) deleteSpecialistEducation(c *gin.Context) {
-	eduID := c.Param("eduId")
-
-	targetURL := fmt.Sprintf("/api/v1/education/%s", eduID)
-	c.Request.URL, _ = url.Parse(targetURL)
-	c.Request.RequestURI = targetURL
-
-	h.deleteEducation(c)
 }
 
 // @Summary Получить профиль специалиста текущего пользователя

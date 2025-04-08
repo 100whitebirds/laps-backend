@@ -41,10 +41,8 @@ type CreateScheduleDTO struct {
 }
 
 type UpdateScheduleDTO struct {
-	StartTime    *string   `json:"start_time,omitempty"`
-	EndTime      *string   `json:"end_time,omitempty"`
-	SlotTime     *int      `json:"slot_time,omitempty"`
-	ExcludeTimes *[]string `json:"exclude_times,omitempty"`
+	WeekSchedule WeekSchedule `json:"week_schedule" binding:"required"`
+	SlotTime     *int         `json:"slot_time,omitempty"`
 }
 
 type ScheduleFilter struct {

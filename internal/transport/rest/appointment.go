@@ -263,29 +263,28 @@ func (h *Handler) getAppointments(c *gin.Context) {
 		Offset: offset,
 	}
 
-	userRole, _ := getUserRole(c)
 	specialist, err := h.services.Specialist.GetByUserID(c.Request.Context(), userID)
 	isSpecialist := err == nil && specialist != nil
 
-	if userRole != domain.UserRoleAdmin {
+	if clientIDStr := c.Query("client_id"); clientIDStr != "" {
+		clientID, err := strconv.ParseInt(clientIDStr, 10, 64)
+		if err == nil {
+			filter.ClientID = &clientID
+		}
+	}
+
+	if specialistIDStr := c.Query("specialist_id"); specialistIDStr != "" {
+		specialistID, err := strconv.ParseInt(specialistIDStr, 10, 64)
+		if err == nil {
+			filter.SpecialistID = &specialistID
+		}
+	}
+
+	if filter.ClientID == nil && filter.SpecialistID == nil {
 		if isSpecialist {
 			filter.SpecialistID = &specialist.ID
 		} else {
 			filter.ClientID = &userID
-		}
-	} else {
-		if clientIDStr := c.Query("client_id"); clientIDStr != "" {
-			clientID, err := strconv.ParseInt(clientIDStr, 10, 64)
-			if err == nil {
-				filter.ClientID = &clientID
-			}
-		}
-
-		if specialistIDStr := c.Query("specialist_id"); specialistIDStr != "" {
-			specialistID, err := strconv.ParseInt(specialistIDStr, 10, 64)
-			if err == nil {
-				filter.SpecialistID = &specialistID
-			}
 		}
 	}
 

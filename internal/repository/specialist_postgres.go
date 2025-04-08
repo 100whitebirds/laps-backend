@@ -60,7 +60,7 @@ func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.Cr
 		dto.AssociationMember,
 		dto.PrimaryConsultPrice,
 		dto.SecondaryConsultPrice,
-		"", // profile_photo_url будет обновлено позже, если фото предоставлено
+		"",
 		now,
 	).Scan(&id)
 
@@ -439,8 +439,8 @@ func (r *SpecialistRepo) GetEducationByID(ctx context.Context, id int64) (*domai
 
 func (r *SpecialistRepo) AddWorkExperience(ctx context.Context, specialistID int64, workExperience domain.WorkExperienceDTO) (int64, error) {
 	query := `
-		INSERT INTO work_experience (specialist_id, company, position, start_year, end_year, description, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+		INSERT INTO work_experience (specialist_id, company, position, start_year, end_year, from_date, to_date, description, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
 		RETURNING id
 	`
 
@@ -452,6 +452,8 @@ func (r *SpecialistRepo) AddWorkExperience(ctx context.Context, specialistID int
 		workExperience.Position,
 		workExperience.StartYear,
 		workExperience.EndYear,
+		workExperience.FromDate,
+		workExperience.ToDate,
 		workExperience.Description,
 		now,
 	).Scan(&id)
@@ -470,9 +472,11 @@ func (r *SpecialistRepo) UpdateWorkExperience(ctx context.Context, id int64, wor
 		    position = $2,
 		    start_year = $3,
 		    end_year = $4,
-		    description = $5,
-		    updated_at = $6
-		WHERE id = $7
+		    from_date = $5,
+		    to_date = $6,
+		    description = $7,
+		    updated_at = $8
+		WHERE id = $9
 	`
 
 	_, err := r.db.Exec(ctx, query,
@@ -480,6 +484,8 @@ func (r *SpecialistRepo) UpdateWorkExperience(ctx context.Context, id int64, wor
 		workExperience.Position,
 		workExperience.StartYear,
 		workExperience.EndYear,
+		workExperience.FromDate,
+		workExperience.ToDate,
 		workExperience.Description,
 		time.Now(),
 		id,
@@ -505,7 +511,7 @@ func (r *SpecialistRepo) DeleteWorkExperience(ctx context.Context, id int64) err
 
 func (r *SpecialistRepo) GetWorkExperienceBySpecialistID(ctx context.Context, specialistID int64) ([]domain.WorkPlace, error) {
 	query := `
-		SELECT id, specialist_id, company, position, start_year, end_year, description, created_at, updated_at
+		SELECT id, specialist_id, company, position, start_year, end_year, from_date, to_date, description, created_at, updated_at
 		FROM work_experience
 		WHERE specialist_id = $1
 		ORDER BY end_year DESC NULLS FIRST, start_year DESC
@@ -527,6 +533,8 @@ func (r *SpecialistRepo) GetWorkExperienceBySpecialistID(ctx context.Context, sp
 			&work.Position,
 			&work.StartYear,
 			&work.EndYear,
+			&work.FromDate,
+			&work.ToDate,
 			&work.Description,
 			&work.CreatedAt,
 			&work.UpdatedAt,
@@ -541,6 +549,38 @@ func (r *SpecialistRepo) GetWorkExperienceBySpecialistID(ctx context.Context, sp
 	}
 
 	return workExperience, nil
+}
+
+func (r *SpecialistRepo) GetWorkExperienceByID(ctx context.Context, id int64) (*domain.WorkPlace, error) {
+	query := `
+		SELECT id, specialist_id, company, position, start_year, end_year, from_date, to_date, description, created_at, updated_at
+		FROM work_experience
+		WHERE id = $1
+		LIMIT 1
+	`
+
+	var work domain.WorkPlace
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&work.ID,
+		&work.SpecialistID,
+		&work.Company,
+		&work.Position,
+		&work.StartYear,
+		&work.EndYear,
+		&work.FromDate,
+		&work.ToDate,
+		&work.Description,
+		&work.CreatedAt,
+		&work.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("опыт работы с ID %d не найден", id)
+		}
+		return nil, fmt.Errorf("ошибка получения опыта работы: %w", err)
+	}
+
+	return &work, nil
 }
 
 func (r *SpecialistRepo) AddSpecialization(ctx context.Context, specialistID, specializationID int64) error {

@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 
 	"laps/config"
+
 	"laps/internal/domain"
 	"laps/internal/repository"
 	"laps/internal/storage"
@@ -13,40 +15,53 @@ import (
 
 type Deps struct {
 	Repos       *repository.Repositories
-	Logger      *zap.Logger
-	Config      *config.Config
 	FileStorage storage.FileStorage
+	Config      *config.Config
+	Logger      *zap.Logger
 }
 
 type Services struct {
 	User           UserService
 	Auth           AuthService
 	Specialist     SpecialistService
-	Appointment    AppointmentService
-	Review         ReviewService
 	Specialization SpecializationService
 	Schedule       ScheduleService
+	Appointment    AppointmentService
+	Review         ReviewService
+	Education      EducationService
+	WorkExperience WorkExperienceService
 }
 
 func NewServices(deps Deps) *Services {
 	return &Services{
 		User:           NewUserService(deps.Repos.User, deps.Logger),
 		Auth:           NewAuthService(deps.Repos.Auth, deps.Repos.User, deps.Config.JWT, deps.Logger),
-		Specialization: NewSpecializationService(deps.Repos.Specialization, deps.Logger),
-		Review:         NewReviewService(deps.Repos.Review, deps.Repos.Specialist, deps.Repos.User, deps.Repos.Appointment, deps.Logger),
 		Specialist:     NewSpecialistService(deps.Repos.Specialist, deps.Repos.User, deps.Repos.Specialization, deps.FileStorage, deps.Logger),
-		Appointment:    NewAppointmentService(deps.Repos.Appointment, deps.Repos.Specialist, deps.Repos.User, deps.Logger),
+		Specialization: NewSpecializationService(deps.Repos.Specialization, deps.Logger),
 		Schedule:       NewScheduleService(deps.Repos.Schedule, deps.Repos.Specialist, deps.Logger),
+		Appointment:    NewAppointmentService(deps.Repos.Appointment, deps.Repos.Specialist, deps.Repos.User, deps.Logger),
+		Review:         NewReviewService(deps.Repos.Review, deps.Repos.Specialist, deps.Repos.User, deps.Repos.Appointment, deps.Logger),
+		Education:      NewEducationService(deps.Repos.Specialist, deps.Logger),
+		WorkExperience: NewWorkExperienceService(deps.Repos.Specialist, deps.Logger),
 	}
 }
 
 type UserService interface {
 	Create(ctx context.Context, dto domain.CreateUserDTO) (int64, error)
 	GetByID(ctx context.Context, id int64) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	Update(ctx context.Context, id int64, dto domain.UpdateUserDTO) error
 	UpdatePassword(ctx context.Context, id int64, dto domain.PasswordUpdateDTO) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, limit, offset int) ([]domain.User, error)
+}
+
+type AuthService interface {
+	Register(ctx context.Context, dto domain.RegisterRequest) (int64, error)
+	Login(ctx context.Context, dto domain.LoginRequest, userAgent, ip string) (*domain.Tokens, error)
+	RefreshTokens(ctx context.Context, refreshToken, userAgent, ip string) (*domain.Tokens, error)
+	Logout(ctx context.Context, refreshToken string) error
+	ParseToken(ctx context.Context, token string) (int64, domain.UserRole, error)
 }
 
 type SpecialistService interface {
@@ -57,22 +72,47 @@ type SpecialistService interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error)
 
+	AddSpecialization(ctx context.Context, specialistID, specializationID int64) error
+	RemoveSpecialization(ctx context.Context, specialistID, specializationID int64) error
+	GetSpecializationsBySpecialistID(ctx context.Context, specialistID int64) ([]domain.Specialization, error)
+
 	UploadProfilePhoto(ctx context.Context, specialistID int64, photo []byte, filename string) error
 	DeleteProfilePhoto(ctx context.Context, specialistID int64) error
+}
 
+type EducationService interface {
 	AddEducation(ctx context.Context, specialistID int64, dto domain.EducationDTO) (int64, error)
 	UpdateEducation(ctx context.Context, id int64, dto domain.EducationDTO) error
 	DeleteEducation(ctx context.Context, id int64) error
 	GetEducationBySpecialistID(ctx context.Context, specialistID int64) ([]domain.Education, error)
 	GetEducationByID(ctx context.Context, id int64) (*domain.Education, error)
+}
 
+type WorkExperienceService interface {
 	AddWorkExperience(ctx context.Context, specialistID int64, dto domain.WorkExperienceDTO) (int64, error)
 	UpdateWorkExperience(ctx context.Context, id int64, dto domain.WorkExperienceDTO) error
 	DeleteWorkExperience(ctx context.Context, id int64) error
+	GetWorkExperienceBySpecialistID(ctx context.Context, specialistID int64) ([]domain.WorkPlace, error)
+	GetWorkExperienceByID(ctx context.Context, id int64) (*domain.WorkPlace, error)
+}
 
-	AddSpecialization(ctx context.Context, specialistID, specializationID int64) error
-	RemoveSpecialization(ctx context.Context, specialistID, specializationID int64) error
-	GetSpecializationsBySpecialistID(ctx context.Context, specialistID int64) ([]domain.Specialization, error)
+type SpecializationService interface {
+	Create(ctx context.Context, dto domain.CreateSpecializationDTO) (int64, error)
+	GetByID(ctx context.Context, id int64) (*domain.Specialization, error)
+	Update(ctx context.Context, id int64, dto domain.UpdateSpecializationDTO) error
+	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, filter domain.SpecializationFilter) ([]domain.Specialization, int, error)
+}
+
+type ScheduleService interface {
+	Create(ctx context.Context, specialistID int64, dto domain.CreateScheduleDTO) (int64, error)
+	GetByID(ctx context.Context, id int64) (*domain.Schedule, error)
+	Update(ctx context.Context, specialistID int64, dto domain.UpdateScheduleDTO) error
+	Delete(ctx context.Context, id int64) error
+	List(ctx context.Context, filter domain.ScheduleFilter) ([]domain.Schedule, int, error)
+	GetBySpecialistAndDate(ctx context.Context, specialistID int64, date string) (*domain.Schedule, error)
+	GenerateTimeSlots(ctx context.Context, specialistID int64, date string) ([]string, error)
+	GetWeekSchedule(ctx context.Context, specialistID int64, startDate time.Time) (*domain.WeekSchedule, int, error)
 }
 
 type AppointmentService interface {
@@ -96,30 +136,4 @@ type ReviewService interface {
 	GetReplyByID(ctx context.Context, id int64) (*domain.Reply, error)
 	DeleteReply(ctx context.Context, replyID int64) error
 	GetRepliesByReviewID(ctx context.Context, reviewID int64) ([]domain.Reply, error)
-}
-
-type SpecializationService interface {
-	Create(ctx context.Context, dto domain.CreateSpecializationDTO) (int64, error)
-	GetByID(ctx context.Context, id int64) (*domain.Specialization, error)
-	Update(ctx context.Context, id int64, dto domain.UpdateSpecializationDTO) error
-	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, filter domain.SpecializationFilter) ([]domain.Specialization, int, error)
-}
-
-type ScheduleService interface {
-	Create(ctx context.Context, specialistID int64, dto domain.CreateScheduleDTO) (int64, error)
-	GetByID(ctx context.Context, id int64) (*domain.Schedule, error)
-	Update(ctx context.Context, id int64, dto domain.UpdateScheduleDTO) error
-	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, filter domain.ScheduleFilter) ([]domain.Schedule, int, error)
-	GetBySpecialistAndDate(ctx context.Context, specialistID int64, date string) (*domain.Schedule, error)
-	GenerateTimeSlots(ctx context.Context, specialistID int64, date string) ([]string, error)
-}
-
-type AuthService interface {
-	Register(ctx context.Context, dto domain.RegisterRequest) (int64, error)
-	Login(ctx context.Context, dto domain.LoginRequest, userAgent, ip string) (*domain.Tokens, error)
-	RefreshTokens(ctx context.Context, refreshToken, userAgent, ip string) (*domain.Tokens, error)
-	Logout(ctx context.Context, refreshToken string) error
-	ParseToken(ctx context.Context, token string) (int64, domain.UserRole, error)
 }
