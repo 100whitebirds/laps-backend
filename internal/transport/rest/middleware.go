@@ -67,8 +67,8 @@ func (h *Handler) corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Origin, Accept, User-Agent, X-Requested-With, Cache-Control, DNT, Referer")
-		c.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Length, Authorization, Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+		c.Writer.Header().Set("Access-Control-Expose-Headers", "*")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400") // 24 часа
 
 		origin := c.Request.Header.Get("Origin")
