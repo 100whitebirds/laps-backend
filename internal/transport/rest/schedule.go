@@ -97,10 +97,8 @@ func (h *Handler) createSchedule(c *gin.Context) {
 // @Param id path int true "ID расписания"
 // @Success 200 {object} domain.Schedule "Расписание"
 // @Failure 400 {object} errorResponseBody "Ошибка валидации данных"
-// @Failure 401 {object} errorResponseBody "Не авторизован"
 // @Failure 404 {object} errorResponseBody "Расписание не найдено"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
-// @Security ApiKeyAuth
 // @Router /schedules/{id} [get]
 func (h *Handler) getScheduleByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -142,7 +140,7 @@ func (h *Handler) getScheduleByID(c *gin.Context) {
 		"slot_time":     slotTime,
 		"week_start":    startDate.Format("2006-01-02"),
 		"specialist_id": schedule.SpecialistID,
-		"schedule_id":   schedule.ID, // Добавляем ID расписания для обратной совместимости
+		"schedule_id":   schedule.ID,
 	})
 }
 
@@ -295,9 +293,7 @@ func (h *Handler) deleteSchedule(c *gin.Context) {
 // @Param offset query int false "Смещение (по умолчанию 0)"
 // @Success 200 {object} map[string]interface{} "Расписание в формате недельного расписания"
 // @Failure 400 {object} errorResponseBody "Ошибка валидации данных"
-// @Failure 401 {object} errorResponseBody "Не авторизован"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
-// @Security ApiKeyAuth
 // @Router /schedules [get]
 func (h *Handler) getSchedules(c *gin.Context) {
 	specialistIDStr := c.DefaultQuery("specialist_id", "")
@@ -446,9 +442,7 @@ func (h *Handler) getFreeSlots(c *gin.Context) {
 // @Param week_start query string false "Начало недели (YYYY-MM-DD), если не указано - текущая неделя"
 // @Success 200 {object} map[string]interface{} "Недельное расписание"
 // @Failure 400 {object} errorResponseBody "Ошибка валидации данных"
-// @Failure 401 {object} errorResponseBody "Не авторизован"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
-// @Security ApiKeyAuth
 // @Router /schedules/week [get]
 func (h *Handler) getScheduleWeek(c *gin.Context) {
 	specialistIDStr := c.Query("specialist_id")
