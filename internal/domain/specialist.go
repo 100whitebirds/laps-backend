@@ -71,15 +71,15 @@ type CreateSpecialistDTO struct {
 	UserID                int64               `json:"user_id,omitempty"`
 	Type                  SpecialistType      `json:"type" binding:"required,oneof=lawyer psychologist"`
 	Specialization        string              `json:"specialization,omitempty"`
-	Experience            int                 `json:"experience" binding:"required,min=0"`
+	Experience            int                 `json:"experience,omitempty" binding:"min=0"`
 	Description           string              `json:"description,omitempty"`
-	ExperienceYears       int                 `json:"experience_years"`
-	AssociationMember     bool                `json:"association_member"`
-	PrimaryConsultPrice   float64             `json:"primary_consult_price" binding:"required,min=0"`
-	SecondaryConsultPrice float64             `json:"secondary_consult_price" binding:"required,min=0"`
+	ExperienceYears       int                 `json:"experience_years,omitempty"`
+	AssociationMember     bool                `json:"association_member,omitempty"`
+	PrimaryConsultPrice   float64             `json:"primary_consult_price,omitempty" binding:"min=0"`
+	SecondaryConsultPrice float64             `json:"secondary_consult_price,omitempty" binding:"min=0"`
 	ProfilePhoto          []byte              `json:"-"`
-	Education             []EducationDTO      `json:"education"`
-	WorkExperience        []WorkExperienceDTO `json:"work_experience"`
+	Education             []EducationDTO      `json:"education,omitempty"`
+	WorkExperience        []WorkExperienceDTO `json:"work_experience,omitempty"`
 }
 
 type UpdateSpecialistDTO struct {
