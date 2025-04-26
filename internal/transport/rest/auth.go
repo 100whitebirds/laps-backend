@@ -35,8 +35,25 @@ func (h *Handler) register(c *gin.Context) {
 		return
 	}
 
+	userAgent := c.Request.UserAgent()
+	ip := c.ClientIP()
+
+	tokens, err := h.services.Auth.Login(c.Request.Context(), domain.LoginRequest{
+		Login:    input.Email,
+		Password: input.Password,
+	}, userAgent, ip)
+	if err != nil {
+		h.logger.Error("ошибка при автоматическом входе после регистрации", zap.Error(err))
+		createdResponse(c, map[string]interface{}{
+			"id": id,
+		})
+		return
+	}
+
 	createdResponse(c, map[string]interface{}{
-		"id": id,
+		"id":            id,
+		"access_token":  tokens.AccessToken,
+		"refresh_token": tokens.RefreshToken,
 	})
 }
 

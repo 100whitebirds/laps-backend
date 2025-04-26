@@ -178,12 +178,11 @@ func (h *Handler) initScheduleRoutes(api *gin.RouterGroup) {
 	{
 		schedules.GET("/free-slots", h.getFreeSlots)
 		schedules.GET("/week", h.getScheduleWeek)
+		schedules.GET("/", h.getSchedules)
+		schedules.GET("/:id", h.getScheduleByID)
 
 		auth := schedules.Group("/", h.authMiddleware())
 		{
-			auth.GET("/", h.getSchedules)
-			auth.GET("/:id", h.getScheduleByID)
-
 			specialistRoutes := auth.Group("/", h.specialistMiddleware())
 			{
 				specialistRoutes.POST("/", h.createSchedule)

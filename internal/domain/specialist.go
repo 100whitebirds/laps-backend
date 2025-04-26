@@ -70,9 +70,9 @@ type WorkPlace struct {
 type CreateSpecialistDTO struct {
 	UserID                int64               `json:"user_id,omitempty"`
 	Type                  SpecialistType      `json:"type" binding:"required,oneof=lawyer psychologist"`
-	Specialization        string              `json:"specialization" binding:"required"`
+	Specialization        string              `json:"specialization,omitempty"`
 	Experience            int                 `json:"experience" binding:"required,min=0"`
-	Description           string              `json:"description"`
+	Description           string              `json:"description,omitempty"`
 	ExperienceYears       int                 `json:"experience_years"`
 	AssociationMember     bool                `json:"association_member"`
 	PrimaryConsultPrice   float64             `json:"primary_consult_price" binding:"required,min=0"`

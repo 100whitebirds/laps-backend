@@ -45,7 +45,6 @@ func (h *Handler) createSchedule(c *gin.Context) {
 		return
 	}
 
-	// Валидация временных слотов
 	weekSchedule := req.WeekSchedule
 	days := []*domain.DaySchedule{
 		weekSchedule.Monday,
