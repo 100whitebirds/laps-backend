@@ -292,7 +292,7 @@ func (r *SpecialistRepo) AddEducation(ctx context.Context, specialistID int64, e
 			specialist_id, institution, specialization, degree, graduation_year, 
 			created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $6)
 		RETURNING id
 	`
 
