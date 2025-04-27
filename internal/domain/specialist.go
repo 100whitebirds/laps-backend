@@ -54,17 +54,15 @@ type Education struct {
 }
 
 type WorkPlace struct {
-	ID           int64      `json:"id"`
-	SpecialistID int64      `json:"specialist_id"`
-	Company      string     `json:"company"`
-	Position     string     `json:"position"`
-	StartYear    int        `json:"start_year"`
-	EndYear      *int       `json:"end_year"`
-	FromDate     *time.Time `json:"from_date"`
-	ToDate       *time.Time `json:"to_date"`
-	Description  string     `json:"description"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID           int64     `json:"id"`
+	SpecialistID int64     `json:"specialist_id"`
+	Company      string    `json:"company"`
+	Position     string    `json:"position"`
+	StartYear    int       `json:"start_year"`
+	EndYear      *int      `json:"end_year"`
+	Description  string    `json:"description"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type CreateSpecialistDTO struct {
@@ -99,17 +97,12 @@ type EducationDTO struct {
 	Specialization string `json:"specialization" binding:"required"`
 	Degree         string `json:"degree" binding:"required"`
 	GraduationYear int    `json:"graduation_year" binding:"required"`
-	FieldOfStudy   string `json:"field_of_study"`
-	FromYear       int    `json:"from_year"`
-	ToYear         int    `json:"to_year"`
 }
 
 type WorkExperienceDTO struct {
-	Company     string     `json:"company" binding:"required"`
-	Position    string     `json:"position" binding:"required"`
-	StartYear   int        `json:"start_year" binding:"required"`
-	EndYear     *int       `json:"end_year"`
-	FromDate    *time.Time `json:"from_date"`
-	ToDate      *time.Time `json:"to_date"`
-	Description string     `json:"description"`
+	Company     string `json:"company" binding:"required"`
+	Position    string `json:"position" binding:"required"`
+	StartYear   int    `json:"start_year" binding:"required"`
+	EndYear     *int   `json:"end_year"`
+	Description string `json:"description"`
 }

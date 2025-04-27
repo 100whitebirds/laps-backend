@@ -189,10 +189,6 @@ definitions:
           $ref: '#/definitions/domain.WorkExperienceDTO'
         type: array
     required:
-    - experience
-    - primary_consult_price
-    - secondary_consult_price
-    - specialization
     - type
     type: object
   domain.CreateSpecializationDTO:
@@ -279,18 +275,12 @@ definitions:
     properties:
       degree:
         type: string
-      field_of_study:
-        type: string
-      from_year:
-        type: integer
       graduation_year:
         type: integer
       institution:
         type: string
       specialization:
         type: string
-      to_year:
-        type: integer
     required:
     - degree
     - graduation_year
@@ -629,14 +619,10 @@ definitions:
         type: string
       end_year:
         type: integer
-      from_date:
-        type: string
       position:
         type: string
       start_year:
         type: integer
-      to_date:
-        type: string
     required:
     - company
     - position
@@ -652,8 +638,6 @@ definitions:
         type: string
       end_year:
         type: integer
-      from_date:
-        type: string
       id:
         type: integer
       position:
@@ -662,8 +646,6 @@ definitions:
         type: integer
       start_year:
         type: integer
-      to_date:
-        type: string
       updated_at:
         type: string
     type: object
@@ -1564,16 +1546,10 @@ paths:
           description: Ошибка валидации данных
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
-        "401":
-          description: Не авторизован
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
         "500":
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
-      security:
-      - ApiKeyAuth: []
       summary: Получить список расписаний
       tags:
       - Расписание
@@ -1716,10 +1692,6 @@ paths:
           description: Ошибка валидации данных
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
-        "401":
-          description: Не авторизован
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
         "404":
           description: Расписание не найдено
           schema:
@@ -1728,8 +1700,6 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
-      security:
-      - ApiKeyAuth: []
       summary: Получить расписание по ID
       tags:
       - Расписание
@@ -1792,16 +1762,10 @@ paths:
           description: Ошибка валидации данных
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
-        "401":
-          description: Не авторизован
-          schema:
-            $ref: '#/definitions/rest.errorResponseBody'
         "500":
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/rest.errorResponseBody'
-      security:
-      - ApiKeyAuth: []
       summary: Получить недельное расписание специалиста
       tags:
       - Расписание

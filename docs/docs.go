@@ -1258,11 +1258,6 @@ const docTemplate = `{
         },
         "/schedules": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Возвращает список расписаний с поддержкой фильтрации",
                 "produces": [
                     "application/json"
@@ -1313,12 +1308,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Ошибка валидации данных",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -1506,11 +1495,6 @@ const docTemplate = `{
         },
         "/schedules/week": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Возвращает расписание специалиста на неделю в структурированном виде",
                 "produces": [
                     "application/json"
@@ -1548,12 +1532,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
                     },
-                    "401": {
-                        "description": "Не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
@@ -1565,11 +1543,6 @@ const docTemplate = `{
         },
         "/schedules/{id}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Получает расписание по ID",
                 "produces": [
                     "application/json"
@@ -1596,12 +1569,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Ошибка валидации данных",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -3630,10 +3597,6 @@ const docTemplate = `{
         "domain.CreateSpecialistDTO": {
             "type": "object",
             "required": [
-                "experience",
-                "primary_consult_price",
-                "secondary_consult_price",
-                "specialization",
                 "type"
             ],
             "properties": {
@@ -3823,12 +3786,6 @@ const docTemplate = `{
                 "degree": {
                     "type": "string"
                 },
-                "field_of_study": {
-                    "type": "string"
-                },
-                "from_year": {
-                    "type": "integer"
-                },
                 "graduation_year": {
                     "type": "integer"
                 },
@@ -3837,9 +3794,6 @@ const docTemplate = `{
                 },
                 "specialization": {
                     "type": "string"
-                },
-                "to_year": {
-                    "type": "integer"
                 }
             }
         },
@@ -4350,17 +4304,11 @@ const docTemplate = `{
                 "end_year": {
                     "type": "integer"
                 },
-                "from_date": {
-                    "type": "string"
-                },
                 "position": {
                     "type": "string"
                 },
                 "start_year": {
                     "type": "integer"
-                },
-                "to_date": {
-                    "type": "string"
                 }
             }
         },
@@ -4379,9 +4327,6 @@ const docTemplate = `{
                 "end_year": {
                     "type": "integer"
                 },
-                "from_date": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -4393,9 +4338,6 @@ const docTemplate = `{
                 },
                 "start_year": {
                     "type": "integer"
-                },
-                "to_date": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"

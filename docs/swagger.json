@@ -1252,11 +1252,6 @@
         },
         "/schedules": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Возвращает список расписаний с поддержкой фильтрации",
                 "produces": [
                     "application/json"
@@ -1307,12 +1302,6 @@
                     },
                     "400": {
                         "description": "Ошибка валидации данных",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -1500,11 +1489,6 @@
         },
         "/schedules/week": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Возвращает расписание специалиста на неделю в структурированном виде",
                 "produces": [
                     "application/json"
@@ -1542,12 +1526,6 @@
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
                     },
-                    "401": {
-                        "description": "Не авторизован",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
                     "500": {
                         "description": "Внутренняя ошибка сервера",
                         "schema": {
@@ -1559,11 +1537,6 @@
         },
         "/schedules/{id}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Получает расписание по ID",
                 "produces": [
                     "application/json"
@@ -1590,12 +1563,6 @@
                     },
                     "400": {
                         "description": "Ошибка валидации данных",
-                        "schema": {
-                            "$ref": "#/definitions/rest.errorResponseBody"
-                        }
-                    },
-                    "401": {
-                        "description": "Не авторизован",
                         "schema": {
                             "$ref": "#/definitions/rest.errorResponseBody"
                         }
@@ -3624,10 +3591,6 @@
         "domain.CreateSpecialistDTO": {
             "type": "object",
             "required": [
-                "experience",
-                "primary_consult_price",
-                "secondary_consult_price",
-                "specialization",
                 "type"
             ],
             "properties": {
@@ -3817,12 +3780,6 @@
                 "degree": {
                     "type": "string"
                 },
-                "field_of_study": {
-                    "type": "string"
-                },
-                "from_year": {
-                    "type": "integer"
-                },
                 "graduation_year": {
                     "type": "integer"
                 },
@@ -3831,9 +3788,6 @@
                 },
                 "specialization": {
                     "type": "string"
-                },
-                "to_year": {
-                    "type": "integer"
                 }
             }
         },
@@ -4344,17 +4298,11 @@
                 "end_year": {
                     "type": "integer"
                 },
-                "from_date": {
-                    "type": "string"
-                },
                 "position": {
                     "type": "string"
                 },
                 "start_year": {
                     "type": "integer"
-                },
-                "to_date": {
-                    "type": "string"
                 }
             }
         },
@@ -4373,9 +4321,6 @@
                 "end_year": {
                     "type": "integer"
                 },
-                "from_date": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
@@ -4387,9 +4332,6 @@
                 },
                 "start_year": {
                     "type": "integer"
-                },
-                "to_date": {
-                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"

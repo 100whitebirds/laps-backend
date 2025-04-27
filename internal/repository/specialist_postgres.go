@@ -290,7 +290,7 @@ func (r *SpecialistRepo) AddEducation(ctx context.Context, specialistID int64, e
 	query := `
 		INSERT INTO education (
 			specialist_id, institution, specialization, degree, graduation_year, 
-			field_of_study, from_year, to_year, created_at, updated_at
+			created_at, updated_at
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
 		RETURNING id
@@ -304,9 +304,6 @@ func (r *SpecialistRepo) AddEducation(ctx context.Context, specialistID int64, e
 		education.Specialization,
 		education.Degree,
 		education.GraduationYear,
-		education.FieldOfStudy,
-		education.FromYear,
-		education.ToYear,
 		now,
 	).Scan(&id)
 
@@ -324,11 +321,8 @@ func (r *SpecialistRepo) UpdateEducation(ctx context.Context, id int64, educatio
 		    specialization = $2,
 		    degree = $3,
 		    graduation_year = $4,
-		    field_of_study = $5,
-		    from_year = $6,
-		    to_year = $7,
-		    updated_at = $8
-		WHERE id = $9
+		    updated_at = $5
+		WHERE id = $6
 	`
 
 	_, err := r.db.Exec(ctx, query,
@@ -336,9 +330,6 @@ func (r *SpecialistRepo) UpdateEducation(ctx context.Context, id int64, educatio
 		education.Specialization,
 		education.Degree,
 		education.GraduationYear,
-		education.FieldOfStudy,
-		education.FromYear,
-		education.ToYear,
 		time.Now(),
 		id,
 	)
@@ -364,7 +355,7 @@ func (r *SpecialistRepo) DeleteEducation(ctx context.Context, id int64) error {
 func (r *SpecialistRepo) GetEducationBySpecialistID(ctx context.Context, specialistID int64) ([]domain.Education, error) {
 	query := `
 		SELECT id, specialist_id, institution, specialization, degree, graduation_year, 
-		       field_of_study, from_year, to_year, created_at, updated_at
+		       created_at, updated_at
 		FROM education
 		WHERE specialist_id = $1
 		ORDER BY graduation_year DESC
@@ -386,9 +377,6 @@ func (r *SpecialistRepo) GetEducationBySpecialistID(ctx context.Context, special
 			&edu.Specialization,
 			&edu.Degree,
 			&edu.GraduationYear,
-			&edu.FieldOfStudy,
-			&edu.FromYear,
-			&edu.ToYear,
 			&edu.CreatedAt,
 			&edu.UpdatedAt,
 		); err != nil {
@@ -407,7 +395,7 @@ func (r *SpecialistRepo) GetEducationBySpecialistID(ctx context.Context, special
 func (r *SpecialistRepo) GetEducationByID(ctx context.Context, id int64) (*domain.Education, error) {
 	query := `
 		SELECT id, specialist_id, institution, specialization, degree, graduation_year, 
-		       field_of_study, from_year, to_year, created_at, updated_at
+		       created_at, updated_at
 		FROM education
 		WHERE id = $1
 		LIMIT 1
@@ -421,9 +409,6 @@ func (r *SpecialistRepo) GetEducationByID(ctx context.Context, id int64) (*domai
 		&edu.Specialization,
 		&edu.Degree,
 		&edu.GraduationYear,
-		&edu.FieldOfStudy,
-		&edu.FromYear,
-		&edu.ToYear,
 		&edu.CreatedAt,
 		&edu.UpdatedAt,
 	)
@@ -439,8 +424,8 @@ func (r *SpecialistRepo) GetEducationByID(ctx context.Context, id int64) (*domai
 
 func (r *SpecialistRepo) AddWorkExperience(ctx context.Context, specialistID int64, workExperience domain.WorkExperienceDTO) (int64, error) {
 	query := `
-		INSERT INTO work_experience (specialist_id, company, position, start_year, end_year, from_date, to_date, description, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+		INSERT INTO work_experience (specialist_id, company, position, start_year, end_year, description, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
 		RETURNING id
 	`
 
@@ -452,8 +437,6 @@ func (r *SpecialistRepo) AddWorkExperience(ctx context.Context, specialistID int
 		workExperience.Position,
 		workExperience.StartYear,
 		workExperience.EndYear,
-		workExperience.FromDate,
-		workExperience.ToDate,
 		workExperience.Description,
 		now,
 	).Scan(&id)
@@ -472,11 +455,9 @@ func (r *SpecialistRepo) UpdateWorkExperience(ctx context.Context, id int64, wor
 		    position = $2,
 		    start_year = $3,
 		    end_year = $4,
-		    from_date = $5,
-		    to_date = $6,
-		    description = $7,
-		    updated_at = $8
-		WHERE id = $9
+		    description = $5,
+		    updated_at = $6
+		WHERE id = $7
 	`
 
 	_, err := r.db.Exec(ctx, query,
@@ -484,8 +465,6 @@ func (r *SpecialistRepo) UpdateWorkExperience(ctx context.Context, id int64, wor
 		workExperience.Position,
 		workExperience.StartYear,
 		workExperience.EndYear,
-		workExperience.FromDate,
-		workExperience.ToDate,
 		workExperience.Description,
 		time.Now(),
 		id,
@@ -511,7 +490,7 @@ func (r *SpecialistRepo) DeleteWorkExperience(ctx context.Context, id int64) err
 
 func (r *SpecialistRepo) GetWorkExperienceBySpecialistID(ctx context.Context, specialistID int64) ([]domain.WorkPlace, error) {
 	query := `
-		SELECT id, specialist_id, company, position, start_year, end_year, from_date, to_date, description, created_at, updated_at
+		SELECT id, specialist_id, company, position, start_year, end_year, description, created_at, updated_at
 		FROM work_experience
 		WHERE specialist_id = $1
 		ORDER BY end_year DESC NULLS FIRST, start_year DESC
@@ -533,8 +512,6 @@ func (r *SpecialistRepo) GetWorkExperienceBySpecialistID(ctx context.Context, sp
 			&work.Position,
 			&work.StartYear,
 			&work.EndYear,
-			&work.FromDate,
-			&work.ToDate,
 			&work.Description,
 			&work.CreatedAt,
 			&work.UpdatedAt,
@@ -553,7 +530,7 @@ func (r *SpecialistRepo) GetWorkExperienceBySpecialistID(ctx context.Context, sp
 
 func (r *SpecialistRepo) GetWorkExperienceByID(ctx context.Context, id int64) (*domain.WorkPlace, error) {
 	query := `
-		SELECT id, specialist_id, company, position, start_year, end_year, from_date, to_date, description, created_at, updated_at
+		SELECT id, specialist_id, company, position, start_year, end_year, description, created_at, updated_at
 		FROM work_experience
 		WHERE id = $1
 		LIMIT 1
@@ -567,8 +544,6 @@ func (r *SpecialistRepo) GetWorkExperienceByID(ctx context.Context, id int64) (*
 		&work.Position,
 		&work.StartYear,
 		&work.EndYear,
-		&work.FromDate,
-		&work.ToDate,
 		&work.Description,
 		&work.CreatedAt,
 		&work.UpdatedAt,
