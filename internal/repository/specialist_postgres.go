@@ -162,16 +162,26 @@ func (r *SpecialistRepo) Update(ctx context.Context, id int64, dto domain.Update
 	query := `
 		UPDATE specialists
 		SET type = COALESCE($1, type),
-		    description = COALESCE($2, description),
-		    experience_years = COALESCE($3, experience_years),
-		    updated_at = $4
-		WHERE id = $5
+		    specialization = COALESCE($2, specialization),
+		    experience = COALESCE($3, experience),
+		    description = COALESCE($4, description),
+		    experience_years = COALESCE($5, experience_years),
+		    association_member = COALESCE($6, association_member),
+		    primary_consult_price = COALESCE($7, primary_consult_price),
+		    secondary_consult_price = COALESCE($8, secondary_consult_price),
+		    updated_at = $9
+		WHERE id = $10
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		dto.Type,
+		dto.Specialization,
+		dto.Experience,
 		dto.Description,
 		dto.ExperienceYears,
+		dto.AssociationMember,
+		dto.PrimaryConsultPrice,
+		dto.SecondaryConsultPrice,
 		time.Now(),
 		id,
 	)

@@ -215,6 +215,10 @@ func (h *Handler) updateSpecialist(c *gin.Context) {
 		return
 	}
 
+	h.logger.Debug("запрос на обновление специалиста",
+		zap.Int64("id", id),
+		zap.Any("request", req))
+
 	err = h.services.Specialist.Update(c.Request.Context(), id, req)
 	if err != nil {
 		h.logger.Error("ошибка при обновлении специалиста", zap.Error(err))
@@ -222,7 +226,12 @@ func (h *Handler) updateSpecialist(c *gin.Context) {
 		return
 	}
 
-	noContentResponse(c)
+	updatedSpecialist, err := h.services.Specialist.GetByID(c.Request.Context(), id)
+	if err != nil {
+		h.logger.Error("ошибка при получении обновленного специалиста", zap.Error(err))
+	}
+
+	successResponse(c, http.StatusOK, updatedSpecialist)
 }
 
 // @Summary Получить отзывы о специалисте

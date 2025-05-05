@@ -88,7 +88,7 @@ func (s *SpecialistServiceImpl) GetByUserID(ctx context.Context, userID int64) (
 }
 
 func (s *SpecialistServiceImpl) Update(ctx context.Context, id int64, dto domain.UpdateSpecialistDTO) error {
-	_, err := s.repo.GetByID(ctx, id)
+	specialist, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("специалист для обновления не найден", zap.Int64("id", id), zap.Error(err))
 		return errors.New("специалист не найден")
@@ -98,6 +98,11 @@ func (s *SpecialistServiceImpl) Update(ctx context.Context, id int64, dto domain
 		s.logger.Error("некорректный тип специалиста", zap.String("type", string(*dto.Type)))
 		return errors.New("некорректный тип специалиста")
 	}
+
+	s.logger.Debug("обновление специалиста",
+		zap.Int64("id", id),
+		zap.Int64("userID", specialist.UserID),
+		zap.Any("data", dto))
 
 	err = s.repo.Update(ctx, id, dto)
 	if err != nil {
