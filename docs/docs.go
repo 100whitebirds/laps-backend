@@ -1681,6 +1681,12 @@ const docTemplate = `{
                         "description": "Тип специалиста (психолог, психотерапевт и т.д.)",
                         "name": "type",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата для получения свободных слотов (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4002,6 +4008,12 @@ const docTemplate = `{
                 },
                 "experience_years": {
                     "type": "integer"
+                },
+                "free_slots": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "id": {
                     "type": "integer"

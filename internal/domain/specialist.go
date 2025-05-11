@@ -34,6 +34,7 @@ type Specialist struct {
 	SecondaryConsultPrice float64        `json:"secondary_consult_price"`
 	IsVerified            bool           `json:"is_verified"`
 	ProfilePhotoURL       string         `json:"profile_photo_url"`
+	FreeSlots             []string       `json:"free_slots,omitempty"`
 	User                  User           `json:"user"`
 	CreatedAt             time.Time      `json:"created_at"`
 	UpdatedAt             time.Time      `json:"updated_at"`

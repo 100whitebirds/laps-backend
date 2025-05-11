@@ -424,6 +424,10 @@ definitions:
         type: integer
       experience_years:
         type: integer
+      free_slots:
+        items:
+          type: string
+        type: array
       id:
         type: integer
       is_verified:
@@ -1786,6 +1790,10 @@ paths:
       - description: Тип специалиста (психолог, психотерапевт и т.д.)
         in: query
         name: type
+        type: string
+      - description: Дата для получения свободных слотов (YYYY-MM-DD)
+        in: query
+        name: date
         type: string
       produces:
       - application/json

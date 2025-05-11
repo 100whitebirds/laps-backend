@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ import (
 // @Param limit query int false "Лимит записей на странице (по умолчанию 20)"
 // @Param offset query int false "Смещение (по умолчанию 0)"
 // @Param type query string false "Тип специалиста (психолог, психотерапевт и т.д.)"
+// @Param date query string false "Дата для получения свободных слотов (YYYY-MM-DD)"
 // @Success 200 {array} domain.Specialist "Список специалистов"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
 // @Router /specialists [get]
@@ -46,6 +48,29 @@ func (h *Handler) getSpecialists(c *gin.Context) {
 		h.logger.Error("ошибка при получении списка специалистов", zap.Error(err))
 		errorResponse(c, http.StatusInternalServerError, "ошибка при получении списка специалистов")
 		return
+	}
+
+	date := c.Query("date")
+	if date != "" {
+		// Проверка формата даты
+		_, err := time.Parse("2006-01-02", date)
+		if err != nil {
+			h.logger.Warn("неверный формат даты", zap.Error(err))
+			badRequestResponse(c, "неверный формат даты, ожидается YYYY-MM-DD")
+			return
+		}
+
+		// Получаем свободные слоты для каждого специалиста
+		for i, specialist := range specialists {
+			slots, err := h.services.Schedule.GenerateTimeSlots(c.Request.Context(), specialist.ID, date)
+			if err != nil {
+				h.logger.Error("ошибка получения свободных слотов для специалиста",
+					zap.Int64("specialistID", specialist.ID), zap.Error(err))
+				// Пропускаем ошибку для конкретного специалиста, чтобы не влиять на общий список
+				continue
+			}
+			specialists[i].FreeSlots = slots
+		}
 	}
 
 	successResponse(c, http.StatusOK, specialists)
