@@ -219,7 +219,7 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 		SELECT s.id, s.user_id, s.type, s.specialization, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
-		       s.is_verified, s.created_at, s.updated_at,
+		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
 			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
@@ -256,6 +256,7 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 			&specialist.PrimaryConsultPrice,
 			&specialist.SecondaryConsultPrice,
 			&specialist.IsVerified,
+			&specialist.ProfilePhotoURL,
 			&specialist.CreatedAt,
 			&specialist.UpdatedAt,
 			&user.ID,
