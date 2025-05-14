@@ -892,7 +892,8 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "ID специалиста",
                         "name": "specialist_id",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "integer",
@@ -930,6 +931,12 @@ const docTemplate = `{
                         "description": "Список отзывов с пагинацией",
                         "schema": {
                             "$ref": "#/definitions/rest.paginatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации параметров",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
                         }
                     },
                     "500": {
@@ -1180,13 +1187,64 @@ const docTemplate = `{
             }
         },
         "/reviews/{id}/replies": {
+            "get": {
+                "description": "Возвращает список ответов на конкретный отзыв",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Отзывы"
+                ],
+                "summary": "Получить ответы на отзыв",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID отзыва",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список ответов на отзыв",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Reply"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный формат ID отзыва",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Отзыв не найден",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Добавляет ответ специалиста на отзыв (только специалист, о котором отзыв, или администратор)",
+                "description": "Добавляет ответ специалиста на отзыв (только специалист, о котором отзыв)",
                 "consumes": [
                     "application/json"
                 ],
@@ -2386,6 +2444,12 @@ const docTemplate = `{
                         "description": "Поисковый запрос",
                         "name": "search",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста для фильтрации специализаций",
+                        "name": "specialist_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -3391,6 +3455,12 @@ const docTemplate = `{
                 "client_id": {
                     "type": "integer"
                 },
+                "client_name": {
+                    "type": "string"
+                },
+                "client_phone": {
+                    "type": "string"
+                },
                 "communication_method": {
                     "$ref": "#/definitions/domain.CommunicationMethod"
                 },
@@ -3505,13 +3575,9 @@ const docTemplate = `{
         "domain.CreateReplyDTO": {
             "type": "object",
             "required": [
-                "review_id",
                 "text"
             ],
             "properties": {
-                "review_id": {
-                    "type": "integer"
-                },
                 "text": {
                     "type": "string"
                 }
@@ -3888,6 +3954,29 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Reply": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "review_id": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.Review": {
             "type": "object",
             "properties": {
@@ -3902,6 +3991,9 @@ const docTemplate = `{
                 },
                 "client_id": {
                     "type": "integer"
+                },
+                "client_name": {
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -4041,6 +4133,9 @@ const docTemplate = `{
                 },
                 "specialization": {
                     "type": "string"
+                },
+                "specialization_id": {
+                    "type": "integer"
                 },
                 "type": {
                     "$ref": "#/definitions/domain.SpecialistType"

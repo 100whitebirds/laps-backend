@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS specialists (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
     type VARCHAR(20) NOT NULL CHECK (type IN ('lawyer', 'psychologist')),
-    specialization TEXT NOT NULL,
+    specialization_id BIGINT NOT NULL REFERENCES specializations(id) ON DELETE SET NULL,
     experience INT NOT NULL,
     association_member BOOLEAN NOT NULL DEFAULT false,
     rating DECIMAL(3,2) NOT NULL DEFAULT 0,

@@ -98,6 +98,13 @@ func (s *ReviewServiceImpl) Create(ctx context.Context, clientID int64, dto doma
 		return 0, errors.New("ошибка при создании отзыва")
 	}
 
+	err = s.UpdateSpecialistAverageRating(ctx, dto.SpecialistID)
+	if err != nil {
+		s.logger.Error("ошибка обновления рейтинга специалиста",
+			zap.Int64("specialistID", dto.SpecialistID),
+			zap.Error(err))
+	}
+
 	return id, nil
 }
 
@@ -145,16 +152,25 @@ func (s *ReviewServiceImpl) Update(ctx context.Context, id int64, dto domain.Upd
 }
 
 func (s *ReviewServiceImpl) Delete(ctx context.Context, id int64) error {
-	_, err := s.repo.GetByID(ctx, id)
+	review, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("отзыв не найден", zap.Int64("id", id), zap.Error(err))
 		return errors.New("отзыв не найден")
 	}
 
+	specialistID := review.SpecialistID
+
 	err = s.repo.Delete(ctx, id)
 	if err != nil {
 		s.logger.Error("ошибка удаления отзыва", zap.Int64("id", id), zap.Error(err))
 		return errors.New("ошибка при удалении отзыва")
+	}
+
+	err = s.UpdateSpecialistAverageRating(ctx, specialistID)
+	if err != nil {
+		s.logger.Error("ошибка обновления рейтинга специалиста после удаления отзыва",
+			zap.Int64("specialistID", specialistID),
+			zap.Error(err))
 	}
 
 	return nil
@@ -303,4 +319,24 @@ func (s *ReviewServiceImpl) GetRepliesByReviewID(ctx context.Context, reviewID i
 		return nil, errors.New("ошибка при получении списка ответов на отзыв")
 	}
 	return replies, nil
+}
+
+func (s *ReviewServiceImpl) UpdateSpecialistAverageRating(ctx context.Context, specialistID int64) error {
+	updateRatingQuery := `
+		UPDATE specialists
+		SET rating = (
+			SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE specialist_id = $1
+		),
+		reviews_count = (
+			SELECT COUNT(*) FROM reviews WHERE specialist_id = $1
+		)
+		WHERE id = $1
+	`
+
+	_, err := s.specialistRepo.(*repository.SpecialistRepo).GetDB().Exec(ctx, updateRatingQuery, specialistID)
+	if err != nil {
+		return fmt.Errorf("ошибка обновления рейтинга специалиста: %w", err)
+	}
+
+	return nil
 }

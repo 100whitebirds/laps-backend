@@ -48,9 +48,6 @@ type Education struct {
 	Specialization string    `json:"specialization"`
 	Degree         string    `json:"degree"`
 	GraduationYear int       `json:"graduation_year"`
-	FieldOfStudy   string    `json:"field_of_study"`
-	FromYear       int       `json:"from_year"`
-	ToYear         int       `json:"to_year"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -70,7 +67,7 @@ type WorkPlace struct {
 type CreateSpecialistDTO struct {
 	UserID                int64               `json:"user_id,omitempty"`
 	Type                  SpecialistType      `json:"type" binding:"required,oneof=lawyer psychologist"`
-	Specialization        string              `json:"specialization,omitempty"`
+	SpecializationID      int64               `json:"specialization_id" binding:"required"`
 	Experience            int                 `json:"experience,omitempty" binding:"min=0"`
 	Description           string              `json:"description,omitempty"`
 	ExperienceYears       int                 `json:"experience_years,omitempty"`
@@ -84,7 +81,7 @@ type CreateSpecialistDTO struct {
 
 type UpdateSpecialistDTO struct {
 	Type                  *SpecialistType `json:"type" binding:"omitempty,oneof=lawyer psychologist"`
-	Specialization        *string         `json:"specialization"`
+	SpecializationID      *int64          `json:"specialization_id"`
 	Experience            *int            `json:"experience" binding:"omitempty,min=0"`
 	Description           *string         `json:"description"`
 	ExperienceYears       *int            `json:"experience_years"`

@@ -353,7 +353,6 @@ func (h *Handler) getReviewReplies(c *gin.Context) {
 		return
 	}
 
-	// Проверяем существование отзыва
 	_, err = h.services.Review.GetByID(c.Request.Context(), reviewID)
 	if err != nil {
 		h.logger.Error("ошибка получения отзыва", zap.Error(err), zap.Int64("reviewID", reviewID))

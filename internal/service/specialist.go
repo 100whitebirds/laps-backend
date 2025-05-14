@@ -53,10 +53,36 @@ func (s *SpecialistServiceImpl) Create(ctx context.Context, userID int64, dto do
 		return 0, errors.New("некорректный тип специалиста")
 	}
 
+	_, err = s.specRepo.GetByID(ctx, dto.SpecializationID)
+	if err != nil {
+		s.logger.Error("указанная специализация не найдена",
+			zap.Int64("specializationID", dto.SpecializationID),
+			zap.Error(err))
+		return 0, errors.New("указанная специализация не найдена")
+	}
+
 	id, err := s.repo.Create(ctx, userID, dto)
 	if err != nil {
 		s.logger.Error("ошибка создания специалиста", zap.Error(err))
 		return 0, errors.New("ошибка при создании специалиста")
+	}
+
+	if len(dto.Education) > 0 {
+		for _, educationDTO := range dto.Education {
+			_, err := s.repo.AddEducation(ctx, id, educationDTO)
+			if err != nil {
+				s.logger.Error("ошибка добавления образования", zap.Error(err))
+			}
+		}
+	}
+
+	if len(dto.WorkExperience) > 0 {
+		for _, workExpDTO := range dto.WorkExperience {
+			_, err := s.repo.AddWorkExperience(ctx, id, workExpDTO)
+			if err != nil {
+				s.logger.Error("ошибка добавления опыта работы", zap.Error(err))
+			}
+		}
 	}
 
 	if len(dto.ProfilePhoto) > 0 {
@@ -97,6 +123,16 @@ func (s *SpecialistServiceImpl) Update(ctx context.Context, id int64, dto domain
 	if dto.Type != nil && !dto.Type.IsValid() {
 		s.logger.Error("некорректный тип специалиста", zap.String("type", string(*dto.Type)))
 		return errors.New("некорректный тип специалиста")
+	}
+
+	if dto.SpecializationID != nil {
+		_, err := s.specRepo.GetByID(ctx, *dto.SpecializationID)
+		if err != nil {
+			s.logger.Error("указанная специализация не найдена",
+				zap.Int64("specializationID", *dto.SpecializationID),
+				zap.Error(err))
+			return errors.New("указанная специализация не найдена")
+		}
 	}
 
 	s.logger.Debug("обновление специалиста",

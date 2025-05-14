@@ -6,6 +6,10 @@ definitions:
         type: string
       client_id:
         type: integer
+      client_name:
+        type: string
+      client_phone:
+        type: string
       communication_method:
         $ref: '#/definitions/domain.CommunicationMethod'
       consultation_type:
@@ -83,12 +87,9 @@ definitions:
     type: object
   domain.CreateReplyDTO:
     properties:
-      review_id:
-        type: integer
       text:
         type: string
     required:
-    - review_id
     - text
     type: object
   domain.CreateReviewDTO:
@@ -344,6 +345,21 @@ definitions:
     - phone
     - role
     type: object
+  domain.Reply:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      review_id:
+        type: integer
+      text:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
   domain.Review:
     properties:
       appointment_id:
@@ -354,6 +370,8 @@ definitions:
         type: integer
       client_id:
         type: integer
+      client_name:
+        type: string
       created_at:
         type: string
       grammar:
@@ -446,6 +464,8 @@ definitions:
         type: number
       specialization:
         type: string
+      specialization_id:
+        type: integer
       type:
         $ref: '#/definitions/domain.SpecialistType'
       updated_at:
@@ -1274,6 +1294,7 @@ paths:
       - description: ID специалиста
         in: query
         name: specialist_id
+        required: true
         type: integer
       - description: ID клиента
         in: query
@@ -1302,6 +1323,10 @@ paths:
           description: Список отзывов с пагинацией
           schema:
             $ref: '#/definitions/rest.paginatedResponse'
+        "400":
+          description: Ошибка валидации параметров
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
         "500":
           description: Внутренняя ошибка сервера
           schema:
@@ -1427,11 +1452,45 @@ paths:
       tags:
       - Отзывы
   /reviews/{id}/replies:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список ответов на конкретный отзыв
+      parameters:
+      - description: ID отзыва
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список ответов на отзыв
+          schema:
+            items:
+              $ref: '#/definitions/domain.Reply'
+            type: array
+        "400":
+          description: Неверный формат ID отзыва
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "404":
+          description: Отзыв не найден
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      summary: Получить ответы на отзыв
+      tags:
+      - Отзывы
     post:
       consumes:
       - application/json
       description: Добавляет ответ специалиста на отзыв (только специалист, о котором
-        отзыв, или администратор)
+        отзыв)
       parameters:
       - description: ID отзыва
         in: path
@@ -2250,6 +2309,10 @@ paths:
         in: query
         name: search
         type: string
+      - description: ID специалиста для фильтрации специализаций
+        in: query
+        name: specialist_id
+        type: integer
       produces:
       - application/json
       responses:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,10 @@ func NewSpecialistRepository(db *pgxpool.Pool) *SpecialistRepo {
 	}
 }
 
+func (r *SpecialistRepo) GetDB() *pgxpool.Pool {
+	return r.db
+}
+
 func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.CreateSpecialistDTO) (int64, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -33,7 +38,7 @@ func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.Cr
 		INSERT INTO specialists (
 			user_id, 
 			type, 
-			specialization, 
+			specialization_id,
 			experience, 
 			description, 
 			experience_years, 
@@ -53,7 +58,7 @@ func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.Cr
 	err = tx.QueryRow(ctx, query,
 		userID,
 		dto.Type,
-		dto.Specialization,
+		dto.SpecializationID,
 		dto.Experience,
 		dto.Description,
 		dto.ExperienceYears,
@@ -81,6 +86,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
+		       s.specialization_id,
 			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
@@ -89,6 +95,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 
 	var specialist domain.Specialist
 	var user domain.User
+	var specializationID *int64
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&specialist.ID,
@@ -108,6 +115,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&specialist.ProfilePhotoURL,
 		&specialist.CreatedAt,
 		&specialist.UpdatedAt,
+		&specializationID,
 		&user.ID,
 		&user.Email,
 		&user.Phone,
@@ -127,6 +135,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 	}
 
 	specialist.User = user
+	specialist.SpecializationID = specializationID
 
 	specialist.Education, err = r.GetEducationBySpecialistID(ctx, id)
 	if err != nil {
@@ -136,19 +145,6 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 	specialist.WorkExperience, err = r.GetWorkExperienceBySpecialistID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка получения опыта работы: %w", err)
-	}
-
-	specializationQuery := `
-		SELECT specialization_id
-		FROM specialist_specializations
-		WHERE specialist_id = $1
-		LIMIT 1
-	`
-
-	var specializationID int64
-	err = r.db.QueryRow(ctx, specializationQuery, id).Scan(&specializationID)
-	if err == nil {
-		specialist.SpecializationID = &specializationID
 	}
 
 	return &specialist, nil
@@ -172,35 +168,90 @@ func (r *SpecialistRepo) GetByUserID(ctx context.Context, userID int64) (*domain
 }
 
 func (r *SpecialistRepo) Update(ctx context.Context, id int64, dto domain.UpdateSpecialistDTO) error {
-	query := `
-		UPDATE specialists
-		SET type = COALESCE($1, type),
-		    specialization = COALESCE($2, specialization),
-		    experience = COALESCE($3, experience),
-		    description = COALESCE($4, description),
-		    experience_years = COALESCE($5, experience_years),
-		    association_member = COALESCE($6, association_member),
-		    primary_consult_price = COALESCE($7, primary_consult_price),
-		    secondary_consult_price = COALESCE($8, secondary_consult_price),
-		    updated_at = $9
-		WHERE id = $10
-	`
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("ошибка начала транзакции: %w", err)
+	}
+	defer tx.Rollback(ctx)
 
-	_, err := r.db.Exec(ctx, query,
-		dto.Type,
-		dto.Specialization,
-		dto.Experience,
-		dto.Description,
-		dto.ExperienceYears,
-		dto.AssociationMember,
-		dto.PrimaryConsultPrice,
-		dto.SecondaryConsultPrice,
-		time.Now(),
-		id,
-	)
+	query := "UPDATE specialists SET "
+	var setClauses []string
+	var args []interface{}
+	argIndex := 1
 
+	if dto.Experience != nil {
+		setClauses = append(setClauses, fmt.Sprintf("experience = $%d", argIndex))
+		args = append(args, *dto.Experience)
+		argIndex++
+	}
+
+	if dto.Description != nil {
+		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIndex))
+		args = append(args, *dto.Description)
+		argIndex++
+	}
+
+	if dto.ExperienceYears != nil {
+		setClauses = append(setClauses, fmt.Sprintf("experience_years = $%d", argIndex))
+		args = append(args, *dto.ExperienceYears)
+		argIndex++
+	}
+
+	if dto.AssociationMember != nil {
+		setClauses = append(setClauses, fmt.Sprintf("association_member = $%d", argIndex))
+		args = append(args, *dto.AssociationMember)
+		argIndex++
+	}
+
+	if dto.PrimaryConsultPrice != nil {
+		setClauses = append(setClauses, fmt.Sprintf("primary_consult_price = $%d", argIndex))
+		args = append(args, *dto.PrimaryConsultPrice)
+		argIndex++
+	}
+
+	if dto.SecondaryConsultPrice != nil {
+		setClauses = append(setClauses, fmt.Sprintf("secondary_consult_price = $%d", argIndex))
+		args = append(args, *dto.SecondaryConsultPrice)
+		argIndex++
+	}
+
+	if dto.SpecializationID != nil {
+		setClauses = append(setClauses, fmt.Sprintf("specialization_id = $%d", argIndex))
+		args = append(args, *dto.SpecializationID)
+		argIndex++
+	}
+
+	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIndex))
+	args = append(args, time.Now())
+	argIndex++
+
+	if len(setClauses) == 1 {
+		return nil
+	}
+
+	query += strings.Join(setClauses, ", ")
+	query += fmt.Sprintf(" WHERE id = $%d", argIndex)
+	args = append(args, id)
+
+	_, err = tx.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("ошибка обновления специалиста: %w", err)
+	}
+
+	updateRatingQuery := `
+		UPDATE specialists
+		SET rating = (
+			SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE specialist_id = $1
+		)
+		WHERE id = $1
+	`
+	_, err = tx.Exec(ctx, updateRatingQuery, id)
+	if err != nil {
+		return fmt.Errorf("ошибка обновления рейтинга специалиста: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("ошибка при коммите транзакции: %w", err)
 	}
 
 	return nil
@@ -222,7 +273,7 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 		SELECT s.id, s.user_id, s.type, s.specialization, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
-		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
+		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at, s.specialization_id,
 			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, 
 			   u.is_active, u.created_at, u.updated_at
 		FROM specialists s
@@ -280,6 +331,7 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 			&specialist.ProfilePhotoURL,
 			&specialist.CreatedAt,
 			&specialist.UpdatedAt,
+			&specialist.SpecializationID,
 			&user.ID,
 			&user.Email,
 			&user.Phone,
@@ -298,19 +350,6 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 
 		user.IsActive = isActive
 		specialist.User = user
-
-		specializationQuery := `
-			SELECT specialization_id
-			FROM specialist_specializations
-			WHERE specialist_id = $1
-			LIMIT 1
-		`
-
-		var specializationID int64
-		err = r.db.QueryRow(ctx, specializationQuery, specialist.ID).Scan(&specializationID)
-		if err == nil {
-			specialist.SpecializationID = &specializationID
-		}
 
 		specialists = append(specialists, specialist)
 	}
