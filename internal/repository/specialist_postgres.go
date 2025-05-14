@@ -82,7 +82,7 @@ func (r *SpecialistRepo) Create(ctx context.Context, userID int64, dto domain.Cr
 
 func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Specialist, error) {
 	query := `
-		SELECT s.id, s.user_id, s.type, s.specialization, s.experience, s.description, 
+		SELECT s.id, s.user_id, s.type, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
@@ -101,7 +101,6 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&specialist.ID,
 		&specialist.UserID,
 		&specialist.Type,
-		&specialist.Specialization,
 		&specialist.Experience,
 		&specialist.Description,
 		&specialist.ExperienceYears,
@@ -270,7 +269,7 @@ func (r *SpecialistRepo) Delete(ctx context.Context, id int64) error {
 
 func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error) {
 	baseQuery := `
-		SELECT s.id, s.user_id, s.type, s.specialization, s.experience, s.description, 
+		SELECT s.id, s.user_id, s.type, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at, s.specialization_id,
@@ -317,7 +316,6 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 			&specialist.ID,
 			&specialist.UserID,
 			&specialist.Type,
-			&specialist.Specialization,
 			&specialist.Experience,
 			&specialist.Description,
 			&specialist.ExperienceYears,
