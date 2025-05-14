@@ -114,6 +114,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		{
 			reviews.GET("/", h.getReviews)
 			reviews.GET("/:id", h.getReviewByID)
+			reviews.GET("/:id/replies", h.getReviewReplies)
 
 			auth := reviews.Group("/")
 			auth.Use(h.authMiddleware())

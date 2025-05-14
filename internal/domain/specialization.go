@@ -34,9 +34,10 @@ type UpdateSpecializationDTO struct {
 }
 
 type SpecializationFilter struct {
-	Type       *SpecialistType `json:"type"`
-	IsActive   *bool           `json:"is_active"`
-	SearchTerm *string         `json:"search_term"`
-	Limit      int             `json:"limit"`
-	Offset     int             `json:"offset"`
+	Type         *SpecialistType `json:"type"`
+	IsActive     *bool           `json:"is_active"`
+	SearchTerm   *string         `json:"search_term"`
+	SpecialistID *int64          `json:"specialist_id"`
+	Limit        int             `json:"limit"`
+	Offset       int             `json:"offset"`
 }

@@ -130,44 +130,75 @@ func (r *SpecializationRepo) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *SpecializationRepo) List(ctx context.Context, filter domain.SpecializationFilter) ([]domain.Specialization, error) {
+	baseQuery := `
+		SELECT s.id, s.name, s.description, s.type, s.is_active, s.created_at, s.updated_at
+		FROM specializations s
+	`
+
+	if filter.SpecialistID != nil {
+		baseQuery = `
+			SELECT s.id, s.name, s.description, s.type, s.is_active, s.created_at, s.updated_at
+			FROM specializations s
+			JOIN specialist_specializations ss ON ss.specialization_id = s.id
+			WHERE ss.specialist_id = $1
+		`
+	}
+
 	conditions := make([]string, 0)
 	args := make([]interface{}, 0)
 	argID := 1
 
+	if filter.SpecialistID != nil {
+		args = append(args, *filter.SpecialistID)
+		argID++
+	}
+
 	if filter.Type != nil {
-		conditions = append(conditions, fmt.Sprintf("type = $%d", argID))
+		if filter.SpecialistID != nil {
+			conditions = append(conditions, fmt.Sprintf("s.type = $%d", argID))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("type = $%d", argID))
+		}
 		args = append(args, *filter.Type)
 		argID++
 	}
 
 	if filter.IsActive != nil {
-		conditions = append(conditions, fmt.Sprintf("is_active = $%d", argID))
+		if filter.SpecialistID != nil {
+			conditions = append(conditions, fmt.Sprintf("s.is_active = $%d", argID))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("is_active = $%d", argID))
+		}
 		args = append(args, *filter.IsActive)
 		argID++
 	}
 
 	if filter.SearchTerm != nil {
-		conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR description ILIKE $%d)", argID, argID))
+		if filter.SpecialistID != nil {
+			conditions = append(conditions, fmt.Sprintf("(s.name ILIKE $%d OR s.description ILIKE $%d)", argID, argID))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR description ILIKE $%d)", argID, argID))
+		}
 		args = append(args, "%"+*filter.SearchTerm+"%")
 		argID++
 	}
 
 	whereClause := ""
 	if len(conditions) > 0 {
-		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		if filter.SpecialistID != nil {
+			whereClause = " AND " + strings.Join(conditions, " AND ")
+		} else {
+			whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		}
 	}
 
 	limitOffset := fmt.Sprintf("LIMIT $%d OFFSET $%d", argID, argID+1)
 	args = append(args, filter.Limit, filter.Offset)
 	argID += 2
 
-	query := fmt.Sprintf(`
-		SELECT id, name, description, type, is_active, created_at, updated_at
-		FROM specializations
-		%s
-		ORDER BY name ASC
-		%s
-	`, whereClause, limitOffset)
+	orderClause := "ORDER BY name ASC"
+
+	query := baseQuery + whereClause + " " + orderClause + " " + limitOffset
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
@@ -200,43 +231,74 @@ func (r *SpecializationRepo) List(ctx context.Context, filter domain.Specializat
 }
 
 func (r *SpecializationRepo) CountByFilter(ctx context.Context, filter domain.SpecializationFilter) (int, error) {
+	baseQuery := `
+		SELECT COUNT(*)
+		FROM specializations s
+	`
+
+	if filter.SpecialistID != nil {
+		baseQuery = `
+			SELECT COUNT(*)
+			FROM specializations s
+			JOIN specialist_specializations ss ON ss.specialization_id = s.id
+			WHERE ss.specialist_id = $1
+		`
+	}
+
 	conditions := make([]string, 0)
 	args := make([]interface{}, 0)
 	argID := 1
 
+	if filter.SpecialistID != nil {
+		args = append(args, *filter.SpecialistID)
+		argID++
+	}
+
 	if filter.Type != nil {
-		conditions = append(conditions, fmt.Sprintf("type = $%d", argID))
+		if filter.SpecialistID != nil {
+			conditions = append(conditions, fmt.Sprintf("s.type = $%d", argID))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("type = $%d", argID))
+		}
 		args = append(args, *filter.Type)
 		argID++
 	}
 
 	if filter.IsActive != nil {
-		conditions = append(conditions, fmt.Sprintf("is_active = $%d", argID))
+		if filter.SpecialistID != nil {
+			conditions = append(conditions, fmt.Sprintf("s.is_active = $%d", argID))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("is_active = $%d", argID))
+		}
 		args = append(args, *filter.IsActive)
 		argID++
 	}
 
 	if filter.SearchTerm != nil {
-		conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR description ILIKE $%d)", argID, argID))
+		if filter.SpecialistID != nil {
+			conditions = append(conditions, fmt.Sprintf("(s.name ILIKE $%d OR s.description ILIKE $%d)", argID, argID))
+		} else {
+			conditions = append(conditions, fmt.Sprintf("(name ILIKE $%d OR description ILIKE $%d)", argID, argID))
+		}
 		args = append(args, "%"+*filter.SearchTerm+"%")
 		argID++
 	}
 
 	whereClause := ""
 	if len(conditions) > 0 {
-		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		if filter.SpecialistID != nil {
+			whereClause = " AND " + strings.Join(conditions, " AND ")
+		} else {
+			whereClause = "WHERE " + strings.Join(conditions, " AND ")
+		}
 	}
 
-	query := fmt.Sprintf(`
-		SELECT COUNT(*)
-		FROM specializations
-		%s
-	`, whereClause)
+	query := baseQuery + whereClause
 
 	var count int
 	err := r.db.QueryRow(ctx, query, args...).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("ошибка подсчета специализаций: %w", err)
+		return 0, fmt.Errorf("ошибка подсчёта специализаций: %w", err)
 	}
 
 	return count, nil

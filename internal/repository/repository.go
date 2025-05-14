@@ -84,10 +84,12 @@ type ReviewRepository interface {
 	GetByID(ctx context.Context, id int64) (*domain.Review, error)
 	Update(ctx context.Context, id int64, dto domain.UpdateReviewDTO) error
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, filter domain.ReviewFilter) ([]domain.Review, error)
+	GetBySpecialistID(ctx context.Context, specialistID int64, limit, offset int) ([]domain.Review, error)
+	GetByUserID(ctx context.Context, userID int64, limit, offset int) ([]domain.Review, error)
+	CountBySpecialistID(ctx context.Context, specialistID int64) (int, error)
 	CountByFilter(ctx context.Context, filter domain.ReviewFilter) (int, error)
-
-	CreateReply(ctx context.Context, userID int64, reply domain.CreateReplyDTO) (int64, error)
+	List(ctx context.Context, filter domain.ReviewFilter) ([]domain.Review, error)
+	CreateReply(ctx context.Context, userID int64, reviewID int64, reply domain.CreateReplyDTO) (int64, error)
 	GetReplyByID(ctx context.Context, id int64) (*domain.Reply, error)
 	DeleteReply(ctx context.Context, id int64) error
 	GetRepliesByReviewID(ctx context.Context, reviewID int64) ([]domain.Reply, error)

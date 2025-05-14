@@ -22,9 +22,10 @@ type Review struct {
 	SpecialistExperience *int `json:"specialist_experience"`
 	Grammar              *int `json:"grammar"`
 
-	ReplyID   *int64    `json:"reply_id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ReplyID    *int64    `json:"reply_id"`
+	ClientName string    `json:"client_name,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type Reply struct {
@@ -54,8 +55,7 @@ type CreateReviewDTO struct {
 }
 
 type CreateReplyDTO struct {
-	ReviewID int64  `json:"review_id" binding:"required"`
-	Text     string `json:"text" binding:"required"`
+	Text string `json:"text" binding:"required"`
 }
 
 type UpdateReviewDTO struct {

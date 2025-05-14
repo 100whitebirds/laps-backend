@@ -138,6 +138,19 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		return nil, fmt.Errorf("ошибка получения опыта работы: %w", err)
 	}
 
+	specializationQuery := `
+		SELECT specialization_id
+		FROM specialist_specializations
+		WHERE specialist_id = $1
+		LIMIT 1
+	`
+
+	var specializationID int64
+	err = r.db.QueryRow(ctx, specializationQuery, id).Scan(&specializationID)
+	if err == nil {
+		specialist.SpecializationID = &specializationID
+	}
+
 	return &specialist, nil
 }
 
@@ -205,43 +218,51 @@ func (r *SpecialistRepo) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error) {
-	var whereClause string
-	var args []interface{}
-	var argPos int = 1
-
-	if specialistType != nil {
-		whereClause = fmt.Sprintf("WHERE s.type = $%d", argPos)
-		args = append(args, *specialistType)
-		argPos++
-	}
-
-	query := fmt.Sprintf(`
+	baseQuery := `
 		SELECT s.id, s.user_id, s.type, s.specialization, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
-			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at
+			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, 
+			   u.is_active, u.created_at, u.updated_at
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
-		%s
-		ORDER BY s.rating DESC, s.reviews_count DESC
-		LIMIT $%d OFFSET $%d
-	`, whereClause, argPos, argPos+1)
+	`
 
-	args = append(args, limit, offset)
+	var whereClause string
+	var args []interface{}
+
+	if specialistType != nil {
+		whereClause = " WHERE s.type = $1"
+		args = append(args, *specialistType)
+	} else {
+		whereClause = ""
+	}
+
+	orderLimitClause := " ORDER BY s.id LIMIT $%d OFFSET $%d"
+	if specialistType != nil {
+		orderLimitClause = fmt.Sprintf(orderLimitClause, 2, 3)
+		args = append(args, limit, offset)
+	} else {
+		orderLimitClause = fmt.Sprintf(orderLimitClause, 1, 2)
+		args = append(args, limit, offset)
+	}
+
+	query := baseQuery + whereClause + orderLimitClause
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения списка специалистов: %w", err)
+		return nil, fmt.Errorf("ошибка выполнения запроса: %w", err)
 	}
 	defer rows.Close()
 
-	specialists := make([]domain.Specialist, 0)
+	var specialists []domain.Specialist
 	for rows.Next() {
 		var specialist domain.Specialist
 		var user domain.User
+		var isActive bool
 
-		if err := rows.Scan(
+		err := rows.Scan(
 			&specialist.ID,
 			&specialist.UserID,
 			&specialist.Type,
@@ -266,32 +287,48 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 			&user.LastName,
 			&user.MiddleName,
 			&user.Role,
+			&isActive,
 			&user.CreatedAt,
 			&user.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("ошибка сканирования строки специалиста: %w", err)
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("ошибка сканирования строки: %w", err)
 		}
 
+		user.IsActive = isActive
 		specialist.User = user
+
+		specializationQuery := `
+			SELECT specialization_id
+			FROM specialist_specializations
+			WHERE specialist_id = $1
+			LIMIT 1
+		`
+
+		var specializationID int64
+		err = r.db.QueryRow(ctx, specializationQuery, specialist.ID).Scan(&specializationID)
+		if err == nil {
+			specialist.SpecializationID = &specializationID
+		}
+
 		specialists = append(specialists, specialist)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("ошибка при итерации по строкам: %w", err)
+		return nil, fmt.Errorf("ошибка обработки результатов: %w", err)
 	}
 
-	for i, spec := range specialists {
-		education, err := r.GetEducationBySpecialistID(ctx, spec.ID)
-		if err != nil {
-			return nil, fmt.Errorf("ошибка получения образования: %w", err)
+	for i, specialist := range specialists {
+		education, err := r.GetEducationBySpecialistID(ctx, specialist.ID)
+		if err == nil {
+			specialists[i].Education = education
 		}
-		specialists[i].Education = education
 
-		workExperience, err := r.GetWorkExperienceBySpecialistID(ctx, spec.ID)
-		if err != nil {
-			return nil, fmt.Errorf("ошибка получения опыта работы: %w", err)
+		workExperience, err := r.GetWorkExperienceBySpecialistID(ctx, specialist.ID)
+		if err == nil {
+			specialists[i].WorkExperience = workExperience
 		}
-		specialists[i].WorkExperience = workExperience
 	}
 
 	return specialists, nil

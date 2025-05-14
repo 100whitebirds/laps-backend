@@ -158,6 +158,24 @@ func (s *AppointmentServiceImpl) List(ctx context.Context, filter domain.Appoint
 		return appointments, 0, nil
 	}
 
+	for i, appointment := range appointments {
+		user, err := s.userRepo.GetByID(ctx, appointment.ClientID)
+		if err != nil {
+			s.logger.Warn("не удалось получить данные пользователя",
+				zap.Int64("clientID", appointment.ClientID),
+				zap.Error(err))
+			continue
+		}
+
+		appt := appointments[i]
+		appt.ClientName = user.FirstName + " " + user.LastName
+		if user.MiddleName != "" {
+			appt.ClientName += " " + user.MiddleName
+		}
+		appt.ClientPhone = user.Phone
+		appointments[i] = appt
+	}
+
 	return appointments, count, nil
 }
 

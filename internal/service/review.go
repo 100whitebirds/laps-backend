@@ -107,6 +107,19 @@ func (s *ReviewServiceImpl) GetByID(ctx context.Context, id int64) (*domain.Revi
 		s.logger.Error("ошибка получения отзыва", zap.Int64("id", id), zap.Error(err))
 		return nil, errors.New("отзыв не найден")
 	}
+
+	user, err := s.userRepo.GetByID(ctx, review.ClientID)
+	if err == nil {
+		review.ClientName = user.FirstName + " " + user.LastName
+		if user.MiddleName != "" {
+			review.ClientName += " " + user.MiddleName
+		}
+	} else {
+		s.logger.Warn("не удалось получить данные пользователя",
+			zap.Int64("clientID", review.ClientID),
+			zap.Error(err))
+	}
+
 	return review, nil
 }
 
@@ -208,16 +221,50 @@ func (s *ReviewServiceImpl) List(ctx context.Context, filter domain.ReviewFilter
 		return nil, 0, fmt.Errorf("ошибка получения списка отзывов: %w", err)
 	}
 
+	for i, review := range reviews {
+		user, err := s.userRepo.GetByID(ctx, review.ClientID)
+		if err != nil {
+			s.logger.Warn("не удалось получить данные пользователя",
+				zap.Int64("clientID", review.ClientID),
+				zap.Error(err))
+			continue
+		}
+
+		rev := reviews[i]
+		rev.ClientName = user.FirstName + " " + user.LastName
+		if user.MiddleName != "" {
+			rev.ClientName += " " + user.MiddleName
+		}
+		reviews[i] = rev
+	}
+
 	return reviews, count, nil
 }
 
-func (s *ReviewServiceImpl) CreateReply(ctx context.Context, userID int64, reply domain.CreateReplyDTO) (int64, error) {
-	_, err := s.repo.GetByID(ctx, reply.ReviewID)
+func (s *ReviewServiceImpl) CreateReply(ctx context.Context, userID int64, reviewID int64, reply domain.CreateReplyDTO) (int64, error) {
+	review, err := s.repo.GetByID(ctx, reviewID)
 	if err != nil {
 		return 0, fmt.Errorf("ошибка получения отзыва: %w", err)
 	}
 
-	replyID, err := s.repo.CreateReply(ctx, userID, reply)
+	specialist, err := s.specialistRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка получения данных специалиста: %w", err)
+	}
+
+	if specialist.ID != review.SpecialistID {
+		return 0, errors.New("вы можете отвечать только на отзывы о вас")
+	}
+
+	if review.ReplyID != nil {
+		return 0, errors.New("на этот отзыв уже есть ответ")
+	}
+
+	replyDTO := domain.CreateReplyDTO{
+		Text: reply.Text,
+	}
+
+	replyID, err := s.repo.CreateReply(ctx, userID, reviewID, replyDTO)
 	if err != nil {
 		return 0, fmt.Errorf("ошибка создания ответа на отзыв: %w", err)
 	}

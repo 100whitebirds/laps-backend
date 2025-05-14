@@ -20,6 +20,7 @@ import (
 // @Param type query string false "Тип специалиста (психолог, психотерапевт и т.д.)"
 // @Param is_active query boolean false "Фильтр по активности"
 // @Param search query string false "Поисковый запрос"
+// @Param specialist_id query int false "ID специалиста для фильтрации специализаций"
 // @Success 200 {object} paginatedResponse "Список специализаций с пагинацией"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
 // @Router /specializations [get]
@@ -51,6 +52,13 @@ func (h *Handler) getSpecializations(c *gin.Context) {
 
 	if search := c.Query("search"); search != "" {
 		filter.SearchTerm = &search
+	}
+
+	if specialistIDStr := c.Query("specialist_id"); specialistIDStr != "" {
+		specialistID, err := strconv.ParseInt(specialistIDStr, 10, 64)
+		if err == nil {
+			filter.SpecialistID = &specialistID
+		}
 	}
 
 	specializations, total, err := h.services.Specialization.List(c.Request.Context(), filter)

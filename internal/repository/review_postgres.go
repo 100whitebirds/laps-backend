@@ -521,7 +521,7 @@ func (r *ReviewRepo) List(ctx context.Context, filter domain.ReviewFilter) ([]do
 	return reviews, nil
 }
 
-func (r *ReviewRepo) CreateReply(ctx context.Context, userID int64, reply domain.CreateReplyDTO) (int64, error) {
+func (r *ReviewRepo) CreateReply(ctx context.Context, userID int64, reviewID int64, reply domain.CreateReplyDTO) (int64, error) {
 	query := `
 		INSERT INTO review_replies (review_id, user_id, text, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $4)
@@ -531,7 +531,7 @@ func (r *ReviewRepo) CreateReply(ctx context.Context, userID int64, reply domain
 	now := time.Now()
 	var id int64
 	err := r.db.QueryRow(ctx, query,
-		reply.ReviewID,
+		reviewID,
 		userID,
 		reply.Text,
 		now,
@@ -547,7 +547,7 @@ func (r *ReviewRepo) CreateReply(ctx context.Context, userID int64, reply domain
 		WHERE id = $2
 	`
 
-	_, err = r.db.Exec(ctx, updateReviewQuery, id, reply.ReviewID)
+	_, err = r.db.Exec(ctx, updateReviewQuery, id, reviewID)
 	if err != nil {
 		return 0, fmt.Errorf("ошибка обновления отзыва с ID ответа: %w", err)
 	}

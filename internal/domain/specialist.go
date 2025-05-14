@@ -20,6 +20,7 @@ type Specialist struct {
 	UserID                int64          `json:"user_id"`
 	Type                  SpecialistType `json:"type"`
 	Specialization        string         `json:"specialization"`
+	SpecializationID      *int64         `json:"specialization_id"`
 	Experience            int            `json:"experience"`
 	Description           string         `json:"description"`
 	ExperienceYears       int            `json:"experience_years"`

@@ -158,7 +158,7 @@ func (h *Handler) deleteReview(c *gin.Context) {
 }
 
 // @Summary Добавить ответ на отзыв
-// @Description Добавляет ответ специалиста на отзыв (только специалист, о котором отзыв, или администратор)
+// @Description Добавляет ответ специалиста на отзыв (только специалист, о котором отзыв)
 // @Tags Отзывы
 // @Accept json
 // @Produce json
@@ -187,25 +187,6 @@ func (h *Handler) createReviewReply(c *gin.Context) {
 		return
 	}
 
-	review, err := h.services.Review.GetByID(c.Request.Context(), reviewID)
-	if err != nil {
-		h.logger.Error("ошибка получения отзыва", zap.Error(err), zap.Int64("id", reviewID))
-		notFoundResponse(c, "отзыв не найден")
-		return
-	}
-
-	userRole, _ := getUserRole(c)
-	specialist, err := h.services.Specialist.GetByUserID(c.Request.Context(), userID)
-
-	canReply := userRole == domain.UserRoleAdmin ||
-		(err == nil && specialist != nil && specialist.ID == review.SpecialistID)
-
-	if !canReply {
-		h.logger.Warn("попытка несанкционированного доступа", zap.Int64("userID", userID))
-		forbiddenResponse(c)
-		return
-	}
-
 	var req domain.CreateReplyDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Warn("неверный формат данных", zap.Error(err))
@@ -213,12 +194,10 @@ func (h *Handler) createReviewReply(c *gin.Context) {
 		return
 	}
 
-	req.ReviewID = reviewID
-
-	id, err := h.services.Review.CreateReply(c.Request.Context(), userID, req)
+	id, err := h.services.Review.CreateReply(c.Request.Context(), userID, reviewID, req)
 	if err != nil {
 		h.logger.Error("ошибка создания ответа на отзыв", zap.Error(err))
-		badRequestResponse(c, "ошибка создания ответа на отзыв")
+		badRequestResponse(c, err.Error())
 		return
 	}
 
@@ -278,13 +257,14 @@ func (h *Handler) deleteReviewReply(c *gin.Context) {
 // @Tags Отзывы
 // @Accept json
 // @Produce json
-// @Param specialist_id query int false "ID специалиста"
+// @Param specialist_id query int true "ID специалиста"
 // @Param client_id query int false "ID клиента"
 // @Param min_rating query int false "Минимальный рейтинг"
 // @Param max_rating query int false "Максимальный рейтинг"
 // @Param limit query int false "Лимит записей на странице (по умолчанию 10)"
 // @Param offset query int false "Смещение (по умолчанию 0)"
 // @Success 200 {object} paginatedResponse "Список отзывов с пагинацией"
+// @Failure 400 {object} errorResponseBody "Ошибка валидации параметров"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
 // @Router /reviews [get]
 func (h *Handler) getReviews(c *gin.Context) {
@@ -293,12 +273,20 @@ func (h *Handler) getReviews(c *gin.Context) {
 		Offset: 0,
 	}
 
-	if specialistIDStr := c.Query("specialist_id"); specialistIDStr != "" {
-		specialistID, err := strconv.ParseInt(specialistIDStr, 10, 64)
-		if err == nil {
-			filter.SpecialistID = &specialistID
-		}
+	specialistIDStr := c.Query("specialist_id")
+	if specialistIDStr == "" {
+		h.logger.Warn("отсутствует обязательный параметр specialist_id")
+		badRequestResponse(c, "отсутствует обязательный параметр specialist_id")
+		return
 	}
+
+	specialistID, err := strconv.ParseInt(specialistIDStr, 10, 64)
+	if err != nil {
+		h.logger.Warn("неверный формат ID специалиста", zap.Error(err))
+		badRequestResponse(c, "неверный формат ID специалиста")
+		return
+	}
+	filter.SpecialistID = &specialistID
 
 	if clientIDStr := c.Query("client_id"); clientIDStr != "" {
 		clientID, err := strconv.ParseInt(clientIDStr, 10, 64)
@@ -344,4 +332,41 @@ func (h *Handler) getReviews(c *gin.Context) {
 
 	page := filter.Offset/filter.Limit + 1
 	paginatedSuccessResponse(c, reviews, total, page, filter.Limit)
+}
+
+// @Summary Получить ответы на отзыв
+// @Description Возвращает список ответов на конкретный отзыв
+// @Tags Отзывы
+// @Accept json
+// @Produce json
+// @Param id path int true "ID отзыва"
+// @Success 200 {array} domain.Reply "Список ответов на отзыв"
+// @Failure 400 {object} errorResponseBody "Неверный формат ID отзыва"
+// @Failure 404 {object} errorResponseBody "Отзыв не найден"
+// @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
+// @Router /reviews/{id}/replies [get]
+func (h *Handler) getReviewReplies(c *gin.Context) {
+	reviewID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		h.logger.Warn("неверный формат ID отзыва", zap.Error(err))
+		badRequestResponse(c, "неверный формат ID отзыва")
+		return
+	}
+
+	// Проверяем существование отзыва
+	_, err = h.services.Review.GetByID(c.Request.Context(), reviewID)
+	if err != nil {
+		h.logger.Error("ошибка получения отзыва", zap.Error(err), zap.Int64("reviewID", reviewID))
+		notFoundResponse(c, "отзыв не найден")
+		return
+	}
+
+	replies, err := h.services.Review.GetRepliesByReviewID(c.Request.Context(), reviewID)
+	if err != nil {
+		h.logger.Error("ошибка получения ответов на отзыв", zap.Error(err), zap.Int64("reviewID", reviewID))
+		errorResponse(c, http.StatusInternalServerError, "ошибка при получении ответов на отзыв")
+		return
+	}
+
+	successResponse(c, http.StatusOK, replies)
 }

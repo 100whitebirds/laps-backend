@@ -132,7 +132,7 @@ type ReviewService interface {
 	GetBySpecialistID(ctx context.Context, specialistID int64, limit, offset int) ([]domain.Review, int, error)
 	GetByUserID(ctx context.Context, userID int64, limit, offset int) ([]domain.Review, error)
 	List(ctx context.Context, filter domain.ReviewFilter) ([]domain.Review, int, error)
-	CreateReply(ctx context.Context, userID int64, reply domain.CreateReplyDTO) (int64, error)
+	CreateReply(ctx context.Context, userID int64, reviewID int64, reply domain.CreateReplyDTO) (int64, error)
 	GetReplyByID(ctx context.Context, id int64) (*domain.Reply, error)
 	DeleteReply(ctx context.Context, replyID int64) error
 	GetRepliesByReviewID(ctx context.Context, reviewID int64) ([]domain.Reply, error)
