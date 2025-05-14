@@ -98,7 +98,7 @@ func (s *ReviewServiceImpl) Create(ctx context.Context, clientID int64, dto doma
 		return 0, errors.New("ошибка при создании отзыва")
 	}
 
-	err = s.UpdateSpecialistAverageRating(ctx, dto.SpecialistID)
+	err = s.UpdateSpecialistRating(ctx, dto.SpecialistID)
 	if err != nil {
 		s.logger.Error("ошибка обновления рейтинга специалиста",
 			zap.Int64("specialistID", dto.SpecialistID),
@@ -166,7 +166,7 @@ func (s *ReviewServiceImpl) Delete(ctx context.Context, id int64) error {
 		return errors.New("ошибка при удалении отзыва")
 	}
 
-	err = s.UpdateSpecialistAverageRating(ctx, specialistID)
+	err = s.UpdateSpecialistRating(ctx, specialistID)
 	if err != nil {
 		s.logger.Error("ошибка обновления рейтинга специалиста после удаления отзыва",
 			zap.Int64("specialistID", specialistID),
@@ -321,7 +321,7 @@ func (s *ReviewServiceImpl) GetRepliesByReviewID(ctx context.Context, reviewID i
 	return replies, nil
 }
 
-func (s *ReviewServiceImpl) UpdateSpecialistAverageRating(ctx context.Context, specialistID int64) error {
+func (s *ReviewServiceImpl) UpdateSpecialistRating(ctx context.Context, specialistID int64) error {
 	updateRatingQuery := `
 		UPDATE specialists
 		SET rating = (

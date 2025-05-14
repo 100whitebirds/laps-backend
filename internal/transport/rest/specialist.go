@@ -22,6 +22,7 @@ import (
 // @Param limit query int false "Лимит записей на странице (по умолчанию 20)"
 // @Param offset query int false "Смещение (по умолчанию 0)"
 // @Param type query string false "Тип специалиста (психолог, психотерапевт и т.д.)"
+// @Param specialization_id query integer false "ID специализации"
 // @Param date query string false "Дата для получения свободных слотов (YYYY-MM-DD)"
 // @Success 200 {array} domain.Specialist "Список специалистов"
 // @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"

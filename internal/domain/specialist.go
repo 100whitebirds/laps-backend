@@ -24,7 +24,6 @@ type Specialist struct {
 	Experience            int            `json:"experience"`
 	Description           string         `json:"description"`
 	ExperienceYears       int            `json:"experience_years"`
-	AverageRating         float64        `json:"average_rating"`
 	Education             []Education    `json:"education"`
 	WorkExperience        []WorkPlace    `json:"work_experience"`
 	AssociationMember     bool           `json:"association_member"`
