@@ -175,8 +175,8 @@ definitions:
       secondary_consult_price:
         minimum: 0
         type: number
-      specialization:
-        type: string
+      specialization_id:
+        type: integer
       type:
         allOf:
         - $ref: '#/definitions/domain.SpecialistType'
@@ -190,6 +190,7 @@ definitions:
           $ref: '#/definitions/domain.WorkExperienceDTO'
         type: array
     required:
+    - specialization_id
     - type
     type: object
   domain.CreateSpecializationDTO:
@@ -253,10 +254,6 @@ definitions:
         type: string
       degree:
         type: string
-      field_of_study:
-        type: string
-      from_year:
-        type: integer
       graduation_year:
         type: integer
       id:
@@ -267,8 +264,6 @@ definitions:
         type: integer
       specialization:
         type: string
-      to_year:
-        type: integer
       updated_at:
         type: string
     type: object
@@ -428,8 +423,6 @@ definitions:
     properties:
       association_member:
         type: boolean
-      average_rating:
-        type: number
       created_at:
         type: string
       description:
@@ -552,8 +545,8 @@ definitions:
       secondary_consult_price:
         minimum: 0
         type: number
-      specialization:
-        type: string
+      specialization_id:
+        type: integer
       type:
         allOf:
         - $ref: '#/definitions/domain.SpecialistType'
@@ -1850,6 +1843,10 @@ paths:
         in: query
         name: type
         type: string
+      - description: ID специализации
+        in: query
+        name: specialization_id
+        type: integer
       - description: Дата для получения свободных слотов (YYYY-MM-DD)
         in: query
         name: date

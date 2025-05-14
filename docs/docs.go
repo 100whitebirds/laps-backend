@@ -1741,6 +1741,12 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "integer",
+                        "description": "ID специализации",
+                        "name": "specialization_id",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
                         "description": "Дата для получения свободных слотов (YYYY-MM-DD)",
                         "name": "date",
@@ -3669,6 +3675,7 @@ const docTemplate = `{
         "domain.CreateSpecialistDTO": {
             "type": "object",
             "required": [
+                "specialization_id",
                 "type"
             ],
             "properties": {
@@ -3699,8 +3706,8 @@ const docTemplate = `{
                     "type": "number",
                     "minimum": 0
                 },
-                "specialization": {
-                    "type": "string"
+                "specialization_id": {
+                    "type": "integer"
                 },
                 "type": {
                     "enum": [
@@ -3817,12 +3824,6 @@ const docTemplate = `{
                 "degree": {
                     "type": "string"
                 },
-                "field_of_study": {
-                    "type": "string"
-                },
-                "from_year": {
-                    "type": "integer"
-                },
                 "graduation_year": {
                     "type": "integer"
                 },
@@ -3837,9 +3838,6 @@ const docTemplate = `{
                 },
                 "specialization": {
                     "type": "string"
-                },
-                "to_year": {
-                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
@@ -4080,9 +4078,6 @@ const docTemplate = `{
                 "association_member": {
                     "type": "boolean"
                 },
-                "average_rating": {
-                    "type": "number"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -4267,8 +4262,8 @@ const docTemplate = `{
                     "type": "number",
                     "minimum": 0
                 },
-                "specialization": {
-                    "type": "string"
+                "specialization_id": {
+                    "type": "integer"
                 },
                 "type": {
                     "enum": [
