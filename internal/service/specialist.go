@@ -165,13 +165,23 @@ func (s *SpecialistServiceImpl) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error) {
+func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, error) {
 	if specialistType != nil && !specialistType.IsValid() {
 		s.logger.Error("некорректный тип специалиста", zap.String("type", string(*specialistType)))
 		return nil, errors.New("некорректный тип специалиста")
 	}
 
-	specialists, err := s.repo.List(ctx, specialistType, limit, offset)
+	if specializationID != nil {
+		_, err := s.specRepo.GetByID(ctx, *specializationID)
+		if err != nil {
+			s.logger.Error("указанная специализация не найдена",
+				zap.Int64("specializationID", *specializationID),
+				zap.Error(err))
+			return nil, errors.New("указанная специализация не найдена")
+		}
+	}
+
+	specialists, err := s.repo.List(ctx, specialistType, specializationID, limit, offset)
 	if err != nil {
 		s.logger.Error("ошибка получения списка специалистов", zap.Error(err))
 		return nil, errors.New("ошибка при получении списка специалистов")

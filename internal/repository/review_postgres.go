@@ -92,7 +92,7 @@ func (r *ReviewRepo) GetByID(ctx context.Context, id int64) (*domain.Review, err
 		SELECT r.id, r.client_id, r.specialist_id, r.appointment_id, r.rating, r.text, r.is_recommended,
 		       r.service_rating, r.meeting_efficiency, r.professionalism, r.price_quality,
 		       r.cleanliness, r.attentiveness, r.specialist_experience, r.grammar,
-		       r.created_at, r.updated_at,
+		       r.created_at, r.updated_at, r.reply_id,
 		       u.first_name, u.last_name
 		FROM reviews r
 		JOIN users u ON r.client_id = u.id
@@ -120,6 +120,7 @@ func (r *ReviewRepo) GetByID(ctx context.Context, id int64) (*domain.Review, err
 		&review.Grammar,
 		&review.CreatedAt,
 		&review.UpdatedAt,
+		&review.ReplyID,
 		&userName,
 		&userLastName,
 	)
@@ -237,7 +238,7 @@ func (r *ReviewRepo) GetBySpecialistID(ctx context.Context, specialistID int64, 
 		SELECT r.id, r.client_id, r.specialist_id, r.appointment_id, r.rating, r.text, r.is_recommended,
 		       r.service_rating, r.meeting_efficiency, r.professionalism, r.price_quality,
 		       r.cleanliness, r.attentiveness, r.specialist_experience, r.grammar,
-		       r.created_at, r.updated_at,
+		       r.created_at, r.updated_at, r.reply_id,
 		       u.first_name, u.last_name
 		FROM reviews r
 		JOIN users u ON r.client_id = u.id
@@ -275,6 +276,7 @@ func (r *ReviewRepo) GetBySpecialistID(ctx context.Context, specialistID int64, 
 			&review.Grammar,
 			&review.CreatedAt,
 			&review.UpdatedAt,
+			&review.ReplyID,
 			&userName,
 			&userLastName,
 		); err != nil {
@@ -296,7 +298,7 @@ func (r *ReviewRepo) GetByUserID(ctx context.Context, userID int64, limit, offse
 		SELECT r.id, r.client_id, r.specialist_id, r.appointment_id, r.rating, r.text, r.is_recommended,
 		       r.service_rating, r.meeting_efficiency, r.professionalism, r.price_quality,
 		       r.cleanliness, r.attentiveness, r.specialist_experience, r.grammar,
-		       r.created_at, r.updated_at,
+		       r.created_at, r.updated_at, r.reply_id,
 		       u.first_name, u.last_name
 		FROM reviews r
 		JOIN users u ON r.client_id = u.id
@@ -334,6 +336,7 @@ func (r *ReviewRepo) GetByUserID(ctx context.Context, userID int64, limit, offse
 			&review.Grammar,
 			&review.CreatedAt,
 			&review.UpdatedAt,
+			&review.ReplyID,
 			&userName,
 			&userLastName,
 		); err != nil {
@@ -461,7 +464,7 @@ func (r *ReviewRepo) List(ctx context.Context, filter domain.ReviewFilter) ([]do
 		SELECT r.id, r.client_id, r.specialist_id, r.appointment_id, r.rating, r.text, r.is_recommended,
 		       r.service_rating, r.meeting_efficiency, r.professionalism, r.price_quality,
 		       r.cleanliness, r.attentiveness, r.specialist_experience, r.grammar,
-		       r.created_at, r.updated_at,
+		       r.created_at, r.updated_at, r.reply_id,
 		       u.first_name, u.last_name
 		FROM reviews r
 		JOIN users u ON r.client_id = u.id
@@ -505,6 +508,7 @@ func (r *ReviewRepo) List(ctx context.Context, filter domain.ReviewFilter) ([]do
 			&review.Grammar,
 			&review.CreatedAt,
 			&review.UpdatedAt,
+			&review.ReplyID,
 			&userName,
 			&userLastName,
 		); err != nil {

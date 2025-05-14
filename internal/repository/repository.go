@@ -48,7 +48,7 @@ type SpecialistRepository interface {
 	GetByUserID(ctx context.Context, userID int64) (*domain.Specialist, error)
 	Update(ctx context.Context, id int64, specialist domain.UpdateSpecialistDTO) error
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error)
+	List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, error)
 
 	UpdateProfilePhoto(ctx context.Context, id int64, photoURL string) error
 
@@ -67,6 +67,7 @@ type SpecialistRepository interface {
 	AddSpecialization(ctx context.Context, specialistID, specializationID int64) error
 	RemoveSpecialization(ctx context.Context, specialistID, specializationID int64) error
 	GetSpecializationsBySpecialistID(ctx context.Context, specialistID int64) ([]domain.Specialization, error)
+	GetDB() *pgxpool.Pool
 }
 
 type AppointmentRepository interface {

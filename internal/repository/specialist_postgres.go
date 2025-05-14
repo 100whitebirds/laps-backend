@@ -87,15 +87,18 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
 		       s.specialization_id,
-			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at
+			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at,
+			   sp.name
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
+		LEFT JOIN specializations sp ON s.specialization_id = sp.id
 		WHERE s.id = $1
 	`
 
 	var specialist domain.Specialist
 	var user domain.User
 	var specializationID *int64
+	var specializationName *string
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&specialist.ID,
@@ -124,6 +127,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
+		&specializationName,
 	)
 
 	if err != nil {
@@ -135,6 +139,9 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 
 	specialist.User = user
 	specialist.SpecializationID = specializationID
+	if specializationName != nil {
+		specialist.Specialization = *specializationName
+	}
 
 	specialist.Education, err = r.GetEducationBySpecialistID(ctx, id)
 	if err != nil {
@@ -267,36 +274,43 @@ func (r *SpecialistRepo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error) {
+func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, error) {
 	baseQuery := `
 		SELECT s.id, s.user_id, s.type, s.experience, s.description, 
 		       s.experience_years, s.association_member, s.rating, s.reviews_count, 
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at, s.specialization_id,
 			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, 
-			   u.is_active, u.created_at, u.updated_at
+			   u.is_active, u.created_at, u.updated_at,
+               sp.name
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
+        LEFT JOIN specializations sp ON s.specialization_id = sp.id
 	`
 
-	var whereClause string
+	var whereClauseConditions []string
 	var args []interface{}
+	argIndex := 1
 
 	if specialistType != nil {
-		whereClause = " WHERE s.type = $1"
+		whereClauseConditions = append(whereClauseConditions, fmt.Sprintf("s.type = $%d", argIndex))
 		args = append(args, *specialistType)
-	} else {
-		whereClause = ""
+		argIndex++
 	}
 
-	orderLimitClause := " ORDER BY s.id LIMIT $%d OFFSET $%d"
-	if specialistType != nil {
-		orderLimitClause = fmt.Sprintf(orderLimitClause, 2, 3)
-		args = append(args, limit, offset)
-	} else {
-		orderLimitClause = fmt.Sprintf(orderLimitClause, 1, 2)
-		args = append(args, limit, offset)
+	if specializationID != nil {
+		whereClauseConditions = append(whereClauseConditions, fmt.Sprintf("s.specialization_id = $%d", argIndex))
+		args = append(args, *specializationID)
+		argIndex++
 	}
+
+	var whereClause string
+	if len(whereClauseConditions) > 0 {
+		whereClause = " WHERE " + strings.Join(whereClauseConditions, " AND ")
+	}
+
+	orderLimitClause := fmt.Sprintf(" ORDER BY s.id LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	args = append(args, limit, offset)
 
 	query := baseQuery + whereClause + orderLimitClause
 
@@ -311,6 +325,7 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 		var specialist domain.Specialist
 		var user domain.User
 		var isActive bool
+		var specializationName *string
 
 		err := rows.Scan(
 			&specialist.ID,
@@ -340,6 +355,7 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 			&isActive,
 			&user.CreatedAt,
 			&user.UpdatedAt,
+			&specializationName,
 		)
 
 		if err != nil {
@@ -348,6 +364,9 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 
 		user.IsActive = isActive
 		specialist.User = user
+		if specializationName != nil {
+			specialist.Specialization = *specializationName
+		}
 
 		specialists = append(specialists, specialist)
 	}

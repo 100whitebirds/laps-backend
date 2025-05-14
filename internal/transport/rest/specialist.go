@@ -43,7 +43,17 @@ func (h *Handler) getSpecialists(c *gin.Context) {
 		specialistType = &t
 	}
 
-	specialists, err := h.services.Specialist.List(c.Request.Context(), specialistType, limit, offset)
+	var specializationID *int64
+	if specializationIDStr := c.Query("specialization_id"); specializationIDStr != "" {
+		id, err := strconv.ParseInt(specializationIDStr, 10, 64)
+		if err == nil {
+			specializationID = &id
+		} else {
+			h.logger.Warn("неверный формат specialization_id", zap.Error(err))
+		}
+	}
+
+	specialists, err := h.services.Specialist.List(c.Request.Context(), specialistType, specializationID, limit, offset)
 	if err != nil {
 		h.logger.Error("ошибка при получении списка специалистов", zap.Error(err))
 		errorResponse(c, http.StatusInternalServerError, "ошибка при получении списка специалистов")

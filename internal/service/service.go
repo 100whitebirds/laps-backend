@@ -70,7 +70,7 @@ type SpecialistService interface {
 	GetByUserID(ctx context.Context, userID int64) (*domain.Specialist, error)
 	Update(ctx context.Context, id int64, dto domain.UpdateSpecialistDTO) error
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, specialistType *domain.SpecialistType, limit, offset int) ([]domain.Specialist, error)
+	List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, error)
 
 	AddSpecialization(ctx context.Context, specialistID, specializationID int64) error
 	RemoveSpecialization(ctx context.Context, specialistID, specializationID int64) error
