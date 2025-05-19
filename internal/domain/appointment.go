@@ -42,6 +42,8 @@ type Appointment struct {
 	UpdatedAt           time.Time           `json:"updated_at"`
 	ClientName          string              `json:"client_name,omitempty"`
 	ClientPhone         string              `json:"client_phone,omitempty"`
+	SpecialistName      string              `json:"specialist_name,omitempty"`
+	SpecialistPhone     string              `json:"specialist_phone,omitempty"`
 }
 
 type CreateAppointmentDTO struct {

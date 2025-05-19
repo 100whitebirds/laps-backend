@@ -173,6 +173,27 @@ func (s *AppointmentServiceImpl) List(ctx context.Context, filter domain.Appoint
 			appt.ClientName += " " + user.MiddleName
 		}
 		appt.ClientPhone = user.Phone
+
+		specialist, err := s.specialistRepo.GetByID(ctx, appointment.SpecialistID)
+		if err != nil {
+			s.logger.Warn("не удалось получить данные специалиста",
+				zap.Int64("specialistID", appointment.SpecialistID),
+				zap.Error(err))
+		} else {
+			specialistUser, err := s.userRepo.GetByID(ctx, specialist.UserID)
+			if err != nil {
+				s.logger.Warn("не удалось получить данные пользователя специалиста",
+					zap.Int64("specialistUserID", specialist.UserID),
+					zap.Error(err))
+			} else {
+				appt.SpecialistName = specialistUser.FirstName + " " + specialistUser.LastName
+				if specialistUser.MiddleName != "" {
+					appt.SpecialistName += " " + specialistUser.MiddleName
+				}
+				appt.SpecialistPhone = specialistUser.Phone
+			}
+		}
+
 		appointments[i] = appt
 	}
 
