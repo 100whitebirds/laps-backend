@@ -164,6 +164,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/appointments/check-pay": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Проверяет, является ли консультация первичной или вторичной для клиента у указанного специалиста",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Записи"
+                ],
+                "summary": "Проверить тип консультации",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID специалиста",
+                        "name": "specialist_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Тип консультации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "401": {
+                        "description": "Не авторизован",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/rest.errorResponseBody"
+                        }
+                    }
+                }
+            }
+        },
         "/appointments/{id}": {
             "get": {
                 "security": [
@@ -3487,6 +3545,12 @@ const docTemplate = `{
                 },
                 "specialist_id": {
                     "type": "integer"
+                },
+                "specialist_name": {
+                    "type": "string"
+                },
+                "specialist_phone": {
+                    "type": "string"
                 },
                 "specialization_id": {
                     "type": "integer"

@@ -24,6 +24,10 @@ definitions:
         type: number
       specialist_id:
         type: integer
+      specialist_name:
+        type: string
+      specialist_phone:
+        type: string
       specialization_id:
         type: integer
       status:
@@ -947,6 +951,44 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Обновить запись
+      tags:
+      - Записи
+  /appointments/check-pay:
+    get:
+      consumes:
+      - application/json
+      description: Проверяет, является ли консультация первичной или вторичной для
+        клиента у указанного специалиста
+      parameters:
+      - description: ID специалиста
+        in: query
+        name: specialist_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Тип консультации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "401":
+          description: Не авторизован
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/rest.errorResponseBody'
+      security:
+      - ApiKeyAuth: []
+      summary: Проверить тип консультации
       tags:
       - Записи
   /auth/login:
