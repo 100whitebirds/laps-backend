@@ -98,7 +98,6 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 
 		appointments := api.Group("/appointments")
 		{
-
 			auth := appointments.Group("/")
 			auth.Use(h.authMiddleware())
 			{
@@ -107,6 +106,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 				auth.PUT("/:id", h.updateAppointment)
 				auth.DELETE("/:id", h.cancelAppointment)
 				auth.GET("/", h.getAppointments)
+				auth.GET("/check-pay", h.checkConsultationType)
 			}
 		}
 

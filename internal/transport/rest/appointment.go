@@ -317,3 +317,49 @@ func (h *Handler) getAppointments(c *gin.Context) {
 	page := offset/limit + 1
 	paginatedSuccessResponse(c, appointments, total, page, limit)
 }
+
+// @Summary Проверить тип консультации
+// @Description Проверяет, является ли консультация первичной или вторичной для клиента у указанного специалиста
+// @Tags Записи
+// @Accept json
+// @Produce json
+// @Param specialist_id query int true "ID специалиста"
+// @Success 200 {object} map[string]string "Тип консультации"
+// @Failure 400 {object} errorResponseBody "Ошибка валидации"
+// @Failure 401 {object} errorResponseBody "Не авторизован"
+// @Failure 500 {object} errorResponseBody "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /appointments/check-pay [get]
+func (h *Handler) checkConsultationType(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		h.logger.Warn("ошибка получения ID пользователя", zap.Error(err))
+		unauthorizedResponse(c)
+		return
+	}
+
+	specialistIDStr := c.Query("specialist_id")
+	if specialistIDStr == "" {
+		h.logger.Warn("не указан ID специалиста")
+		badRequestResponse(c, "не указан ID специалиста")
+		return
+	}
+
+	specialistID, err := strconv.ParseInt(specialistIDStr, 10, 64)
+	if err != nil {
+		h.logger.Warn("неверный формат ID специалиста", zap.Error(err))
+		badRequestResponse(c, "неверный формат ID специалиста")
+		return
+	}
+
+	consultationType, err := h.services.Appointment.CheckConsultationType(c.Request.Context(), userID, specialistID)
+	if err != nil {
+		h.logger.Error("ошибка при определении типа консультации", zap.Error(err))
+		internalServerErrorResponse(c)
+		return
+	}
+
+	successResponse(c, http.StatusOK, gin.H{
+		"consultation_type": string(consultationType),
+	})
+}

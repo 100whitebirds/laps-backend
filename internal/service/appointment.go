@@ -201,17 +201,39 @@ func (s *AppointmentServiceImpl) List(ctx context.Context, filter domain.Appoint
 }
 
 func (s *AppointmentServiceImpl) GetFreeSlots(ctx context.Context, specialistID int64, date string) ([]string, error) {
-	_, err := s.specialistRepo.GetByID(ctx, specialistID)
-	if err != nil {
-		return nil, fmt.Errorf("ошибка получения информации о специалисте: %w", err)
-	}
-
 	slots, err := s.repo.GetFreeSlots(ctx, specialistID, date)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения свободных слотов: %w", err)
+		s.logger.Error("ошибка получения свободных слотов", zap.Error(err))
+		return nil, err
+	}
+	return slots, nil
+}
+
+func (s *AppointmentServiceImpl) CheckConsultationType(ctx context.Context, clientID int64, specialistID int64) (domain.ConsultationType, error) {
+	filter := domain.AppointmentFilter{
+		ClientID:     &clientID,
+		SpecialistID: &specialistID,
 	}
 
-	return slots, nil
+	appointments, err := s.repo.List(ctx, filter)
+	if err != nil {
+		s.logger.Error("ошибка при проверке истории записей", zap.Error(err))
+		return "", fmt.Errorf("ошибка при проверке истории записей: %w", err)
+	}
+
+	hasActiveAppointments := false
+	for _, appointment := range appointments {
+		if appointment.Status != domain.AppointmentStatusCancelled {
+			hasActiveAppointments = true
+			break
+		}
+	}
+
+	if !hasActiveAppointments {
+		return domain.ConsultationTypePrimary, nil
+	}
+
+	return domain.ConsultationTypeSecondary, nil
 }
 
 func PointerTo[T any](v T) *T {

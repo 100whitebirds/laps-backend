@@ -122,6 +122,7 @@ type AppointmentService interface {
 	Cancel(ctx context.Context, id int64) error
 	List(ctx context.Context, filter domain.AppointmentFilter) ([]domain.Appointment, int, error)
 	GetFreeSlots(ctx context.Context, specialistID int64, date string) ([]string, error)
+	CheckConsultationType(ctx context.Context, clientID int64, specialistID int64) (domain.ConsultationType, error)
 }
 
 type ReviewService interface {
