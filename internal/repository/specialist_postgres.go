@@ -390,6 +390,45 @@ func (r *SpecialistRepo) List(ctx context.Context, specialistType *domain.Specia
 	return specialists, nil
 }
 
+func (r *SpecialistRepo) CountByFilter(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64) (int, error) {
+	baseQuery := `
+		SELECT COUNT(*)
+		FROM specialists s
+		JOIN users u ON s.user_id = u.id
+	`
+
+	var whereClauseConditions []string
+	var args []interface{}
+	argIndex := 1
+
+	if specialistType != nil {
+		whereClauseConditions = append(whereClauseConditions, fmt.Sprintf("s.type = $%d", argIndex))
+		args = append(args, *specialistType)
+		argIndex++
+	}
+
+	if specializationID != nil {
+		whereClauseConditions = append(whereClauseConditions, fmt.Sprintf("s.specialization_id = $%d", argIndex))
+		args = append(args, *specializationID)
+		argIndex++
+	}
+
+	var whereClause string
+	if len(whereClauseConditions) > 0 {
+		whereClause = " WHERE " + strings.Join(whereClauseConditions, " AND ")
+	}
+
+	query := baseQuery + whereClause
+
+	var count int
+	err := r.db.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка подсчёта специалистов: %w", err)
+	}
+
+	return count, nil
+}
+
 func (r *SpecialistRepo) AddEducation(ctx context.Context, specialistID int64, education domain.EducationDTO) (int64, error) {
 	query := `
 		INSERT INTO education (

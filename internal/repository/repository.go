@@ -49,6 +49,7 @@ type SpecialistRepository interface {
 	Update(ctx context.Context, id int64, specialist domain.UpdateSpecialistDTO) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, error)
+	CountByFilter(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64) (int, error)
 
 	UpdateProfilePhoto(ctx context.Context, id int64, photoURL string) error
 

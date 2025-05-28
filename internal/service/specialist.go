@@ -165,10 +165,10 @@ func (s *SpecialistServiceImpl) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, error) {
+func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain.SpecialistType, specializationID *int64, limit, offset int) ([]domain.Specialist, int, error) {
 	if specialistType != nil && !specialistType.IsValid() {
 		s.logger.Error("некорректный тип специалиста", zap.String("type", string(*specialistType)))
-		return nil, errors.New("некорректный тип специалиста")
+		return nil, 0, errors.New("некорректный тип специалиста")
 	}
 
 	if specializationID != nil {
@@ -177,17 +177,23 @@ func (s *SpecialistServiceImpl) List(ctx context.Context, specialistType *domain
 			s.logger.Error("указанная специализация не найдена",
 				zap.Int64("specializationID", *specializationID),
 				zap.Error(err))
-			return nil, errors.New("указанная специализация не найдена")
+			return nil, 0, errors.New("указанная специализация не найдена")
 		}
+	}
+
+	total, err := s.repo.CountByFilter(ctx, specialistType, specializationID)
+	if err != nil {
+		s.logger.Error("ошибка подсчета количества специалистов", zap.Error(err))
+		return nil, 0, errors.New("ошибка при получении списка специалистов")
 	}
 
 	specialists, err := s.repo.List(ctx, specialistType, specializationID, limit, offset)
 	if err != nil {
 		s.logger.Error("ошибка получения списка специалистов", zap.Error(err))
-		return nil, errors.New("ошибка при получении списка специалистов")
+		return nil, 0, errors.New("ошибка при получении списка специалистов")
 	}
 
-	return specialists, nil
+	return specialists, total, nil
 }
 
 func (s *SpecialistServiceImpl) AddSpecialization(ctx context.Context, specialistID, specializationID int64) error {
