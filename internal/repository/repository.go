@@ -17,6 +17,7 @@ type Repositories struct {
 	Specialization SpecializationRepository
 	Auth           AuthRepository
 	Schedule       ScheduleRepository
+	Chat           ChatRepository
 }
 
 func NewRepositories(db *pgxpool.Pool) *Repositories {
@@ -28,6 +29,7 @@ func NewRepositories(db *pgxpool.Pool) *Repositories {
 		Appointment:    NewAppointmentRepository(db),
 		Review:         NewReviewRepository(db),
 		Schedule:       NewScheduleRepository(db),
+		Chat:           NewChatRepository(db),
 	}
 }
 

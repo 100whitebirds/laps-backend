@@ -30,6 +30,7 @@ type Services struct {
 	Review         ReviewService
 	Education      EducationService
 	WorkExperience WorkExperienceService
+	Chat           ChatService
 }
 
 func NewServices(deps Deps) *Services {
@@ -43,6 +44,7 @@ func NewServices(deps Deps) *Services {
 		Review:         NewReviewService(deps.Repos.Review, deps.Repos.Specialist, deps.Repos.User, deps.Repos.Appointment, deps.Logger),
 		Education:      NewEducationService(deps.Repos.Specialist, deps.Logger),
 		WorkExperience: NewWorkExperienceService(deps.Repos.Specialist, deps.Logger),
+		Chat:           NewChatService(deps.Repos.Chat, deps.Repos.Appointment, deps.Repos.User, deps.Logger),
 	}
 }
 

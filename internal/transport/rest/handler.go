@@ -11,19 +11,22 @@ import (
 	"laps/config"
 	"laps/internal/domain"
 	"laps/internal/service"
+	"laps/internal/transport/websocket"
 )
 
 type Handler struct {
-	services *service.Services
-	logger   *zap.Logger
-	config   *config.Config
+	services     *service.Services
+	logger       *zap.Logger
+	config       *config.Config
+	signalingHub *websocket.SignalingHub
 }
 
-func NewHandler(services *service.Services, logger *zap.Logger, config *config.Config) *Handler {
+func NewHandler(services *service.Services, logger *zap.Logger, config *config.Config, signalingHub *websocket.SignalingHub) *Handler {
 	return &Handler{
-		services: services,
-		logger:   logger,
-		config:   config,
+		services:     services,
+		logger:       logger,
+		config:       config,
+		signalingHub: signalingHub,
 	}
 }
 
@@ -172,6 +175,41 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		specialists.POST("/:id/work-experience", h.authMiddleware(), h.addWorkExperienceToSpecialist)
 		specialists.POST("/:id/education", h.authMiddleware(), h.addEducationToSpecialist)
 	}
+
+	// Chat routes
+	chat := api.Group("/chat")
+	chat.Use(h.authMiddleware())
+	{
+		// Chat sessions
+		sessions := chat.Group("/sessions")
+		{
+			sessions.POST("/", h.createChatSession)
+			sessions.GET("/", h.getUserChatSessions)
+			sessions.GET("/:id", h.getChatSession)
+			sessions.GET("/appointment/:appointment_id", h.getChatSessionByAppointment)
+			sessions.PUT("/:id/end", h.endChatSession)
+			
+			// Messages within sessions
+			sessions.GET("/:id/messages", h.getMessages)
+		}
+		
+		// Chat messages
+		messages := chat.Group("/messages")
+		{
+			messages.POST("/", h.sendMessage)
+			messages.PUT("/:id/read", h.markMessageAsRead)
+		}
+		
+		// Video calls
+		videoCalls := chat.Group("/video-calls")
+		{
+			videoCalls.POST("/", h.startVideoCall)
+			videoCalls.GET("/:id", h.getVideoCallSession)
+		}
+	}
+
+	// WebSocket signaling route for WebRTC
+	router.GET("/ws/signaling", h.authMiddleware(), h.signalingHub.HandleWebSocket)
 }
 
 func (h *Handler) initScheduleRoutes(api *gin.RouterGroup) {
