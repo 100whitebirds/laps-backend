@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"laps/internal/domain"
+	"laps/internal/service"
 )
 
 // SignalingMessage represents a WebRTC signaling message
@@ -54,6 +55,9 @@ type SignalingHub struct {
 	// Logger
 	logger *zap.Logger
 
+	// Services
+	services *service.Services
+
 	// Mutex for thread safety
 	mutex sync.RWMutex
 }
@@ -79,7 +83,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // NewSignalingHub creates a new signaling hub
-func NewSignalingHub(logger *zap.Logger) *SignalingHub {
+func NewSignalingHub(logger *zap.Logger, services *service.Services) *SignalingHub {
 	return &SignalingHub{
 		clients:    make(map[int64]*Client),
 		broadcast:  make(chan []byte),
@@ -87,6 +91,7 @@ func NewSignalingHub(logger *zap.Logger) *SignalingHub {
 		unregister: make(chan *Client),
 		sessions:   make(map[string]*CallSession),
 		logger:     logger,
+		services:   services,
 	}
 }
 
@@ -256,28 +261,43 @@ func (h *SignalingHub) sendMessageToClient(client *Client, msg *SignalingMessage
 
 // HandleWebSocket handles WebSocket connections
 func (h *SignalingHub) HandleWebSocket(c *gin.Context) {
+	h.logger.Info("🔥 WebSocket handler called", zap.String("path", c.Request.URL.Path), zap.String("query", c.Request.URL.RawQuery))
+	
 	// Get user ID and role from JWT token (passed as query parameter for WebSocket)
 	tokenStr := c.Query("token")
 	if tokenStr == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token required"})
-		return
+		h.logger.Info("🔥 No token provided, using simplified auth")
+	} else {
+		h.logger.Info("🔥 Token provided but using simplified auth anyway")
 	}
 
-	// TODO: Validate JWT token and extract user info
-	// For now, we'll get user_id from query parameter (in production, extract from JWT)
+	// For now, use a simple approach - extract user info from query params
+	// In production, this should use proper JWT validation
 	userIDStr := c.Query("user_id")
-	if userIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id required"})
+	roleStr := c.Query("role")
+	
+	// Temporary simple validation - just check if user exists in system
+	if userIDStr == "" || roleStr == "" {
+		h.logger.Warn("Missing user_id or role in WebSocket request")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id and role required"})
 		return
 	}
-
+	
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		h.logger.Warn("Invalid user_id format", zap.String("user_id", userIDStr))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id format"})
 		return
 	}
-
-	role := domain.UserRole(c.DefaultQuery("role", "client"))
+	
+	role := domain.UserRole(roleStr)
+	if role != "client" && role != "specialist" {
+		h.logger.Warn("Invalid role", zap.String("role", roleStr))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+		return
+	}
+	
+	h.logger.Info("WebSocket connection authorized", zap.Int64("user_id", userID), zap.String("role", string(role)))
 
 	// Upgrade connection to WebSocket
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)

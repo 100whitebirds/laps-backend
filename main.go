@@ -91,7 +91,7 @@ func main() {
 	})
 
 	// Initialize WebSocket signaling hub
-	signalingHub := websocket.NewSignalingHub(logger)
+	signalingHub := websocket.NewSignalingHub(logger, services)
 	go signalingHub.Run()
 
 	handler := rest.NewHandler(services, logger, cfg, signalingHub)

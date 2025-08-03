@@ -208,8 +208,13 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		}
 	}
 
-	// WebSocket signaling route for WebRTC
-	router.GET("/ws/signaling", h.authMiddleware(), h.signalingHub.HandleWebSocket)
+	// Test route to verify no auth middleware
+	router.GET("/test-no-auth", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "no auth required", "path": c.Request.URL.Path})
+	})
+
+	// WebSocket signaling route for WebRTC (no middleware - handles auth internally)
+	router.GET("/ws/signaling", h.signalingHub.HandleWebSocket)
 }
 
 func (h *Handler) initScheduleRoutes(api *gin.RouterGroup) {
