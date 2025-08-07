@@ -62,11 +62,12 @@ type UpdateAppointmentDTO struct {
 }
 
 type AppointmentFilter struct {
-	ClientID     *int64             `json:"client_id"`
-	SpecialistID *int64             `json:"specialist_id"`
-	Status       *AppointmentStatus `json:"status"`
-	StartDate    *time.Time         `json:"start_date"`
-	EndDate      *time.Time         `json:"end_date"`
-	Limit        int                `json:"limit"`
-	Offset       int                `json:"offset"`
+	ClientID      *int64             `json:"client_id"`
+	SpecialistID  *int64             `json:"specialist_id"`
+	Status        *AppointmentStatus `json:"status"`
+	ExcludeStatus *AppointmentStatus `json:"exclude_status"`
+	StartDate     *time.Time         `json:"start_date"`
+	EndDate       *time.Time         `json:"end_date"`
+	Limit         int                `json:"limit"`
+	Offset        int                `json:"offset"`
 }

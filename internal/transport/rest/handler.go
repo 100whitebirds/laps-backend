@@ -176,37 +176,8 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		specialists.POST("/:id/education", h.authMiddleware(), h.addEducationToSpecialist)
 	}
 
-	// Chat routes
-	chat := api.Group("/chat")
-	chat.Use(h.authMiddleware())
-	{
-		// Chat sessions
-		sessions := chat.Group("/sessions")
-		{
-			sessions.POST("/", h.createChatSession)
-			sessions.GET("/", h.getUserChatSessions)
-			sessions.GET("/:id", h.getChatSession)
-			sessions.GET("/appointment/:appointment_id", h.getChatSessionByAppointment)
-			sessions.PUT("/:id/end", h.endChatSession)
-			
-			// Messages within sessions
-			sessions.GET("/:id/messages", h.getMessages)
-		}
-		
-		// Chat messages
-		messages := chat.Group("/messages")
-		{
-			messages.POST("/", h.sendMessage)
-			messages.PUT("/:id/read", h.markMessageAsRead)
-		}
-		
-		// Video calls
-		videoCalls := chat.Group("/video-calls")
-		{
-			videoCalls.POST("/", h.startVideoCall)
-			videoCalls.GET("/:id", h.getVideoCallSession)
-		}
-	}
+	// Initialize chat routes
+	h.initChatRoutes(api)
 
 	// Test route to verify no auth middleware
 	router.GET("/test-no-auth", func(c *gin.Context) {
@@ -234,6 +205,38 @@ func (h *Handler) initScheduleRoutes(api *gin.RouterGroup) {
 				specialistRoutes.DELETE("/:id", h.deleteSchedule)
 			}
 		}
+	}
+}
+
+func (h *Handler) initChatRoutes(api *gin.RouterGroup) {
+	chatHandler := NewChatHandler(h.services.Chat)
+	
+	chat := api.Group("/chat")
+	chat.Use(h.authMiddleware())
+	{
+		// Chat sessions
+		sessions := chat.Group("/sessions")
+		{
+			sessions.POST("/", chatHandler.CreateChatSession)
+			sessions.GET("/", chatHandler.ListChatSessions)
+			sessions.GET("/:id", chatHandler.GetChatSession)
+			sessions.PATCH("/:id", chatHandler.UpdateChatSession)
+			sessions.GET("/appointment/:appointment_id", chatHandler.GetChatSessionByAppointment)
+		}
+		
+		// Chat messages - use a different base path to avoid conflicts
+		chat.GET("/session/:session_id/messages", chatHandler.GetMessages)
+		chat.POST("/session/:session_id/read", chatHandler.MarkMessagesAsRead)
+		chat.GET("/session/:session_id/unread", chatHandler.GetUnreadMessageCount)
+		
+		// Chat messages
+		messages := chat.Group("/messages")
+		{
+			messages.POST("/", chatHandler.SendMessage)
+		}
+		
+		// Chat summary
+		chat.GET("/summary", chatHandler.GetChatSummary)
 	}
 }
 

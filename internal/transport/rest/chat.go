@@ -4,324 +4,381 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
-
 	"laps/internal/domain"
+	"laps/internal/service"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Chat Sessions Endpoints
+type ChatHandler struct {
+	chatService service.ChatService
+}
 
-func (h *Handler) createChatSession(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
-		return
+func NewChatHandler(chatService service.ChatService) *ChatHandler {
+	return &ChatHandler{
+		chatService: chatService,
 	}
+}
 
+// @Summary Create chat session
+// @Description Create a new chat session for an appointment
+// @Tags Chat
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body domain.CreateChatSessionDTO true "Chat session data"
+// @Success 201 {object} successResponse{data=domain.ChatSession}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/sessions [post]
+func (h *ChatHandler) CreateChatSession(c *gin.Context) {
 	var dto domain.CreateChatSessionDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid request body: "+err.Error())
+		badRequestResponse(c, "Invalid request body: " + err.Error())
 		return
 	}
 
-	session, err := h.services.Chat.CreateChatSession(c.Request.Context(), dto, userID.(int64))
+	session, err := h.chatService.CreateChatSession(c.Request.Context(), dto)
 	if err != nil {
-		h.logger.Error("Failed to create chat session: " + err.Error())
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusCreated, session)
+	createdResponse(c, session)
 }
 
-func (h *Handler) getChatSession(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
-		return
-	}
-
-	sessionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+// @Summary Get chat session by ID
+// @Description Get a specific chat session by ID
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Chat session ID"
+// @Success 200 {object} successResponse{data=domain.ChatSession}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /chat/sessions/{id} [get]
+func (h *ChatHandler) GetChatSession(c *gin.Context) {
+	userID, err := getUserID(c)
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid session ID")
+		unauthorizedResponse(c)
 		return
 	}
-
-	session, err := h.services.Chat.GetChatSessionByID(c.Request.Context(), sessionID, userID.(int64))
+	
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		if err.Error() == "access denied: user not participant in chat session" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to get chat session: " + err.Error())
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		badRequestResponse(c, "Invalid session ID")
 		return
 	}
 
-	if session == nil {
-		errorResponse(c, http.StatusNotFound, "chat session not found")
+	session, err := h.chatService.GetChatSessionByID(c.Request.Context(), id, userID)
+	if err != nil {
+		notFoundResponse(c, err.Error())
 		return
 	}
 
 	successResponse(c, http.StatusOK, session)
 }
 
-func (h *Handler) getChatSessionByAppointment(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
+// @Summary Get chat session by appointment ID
+// @Description Get a chat session by appointment ID
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Param appointment_id path int true "Appointment ID"
+// @Success 200 {object} successResponse{data=domain.ChatSession}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /chat/sessions/appointment/{appointment_id} [get]
+func (h *ChatHandler) GetChatSessionByAppointment(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
 		return
 	}
-
+	
 	appointmentID, err := strconv.ParseInt(c.Param("appointment_id"), 10, 64)
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid appointment ID")
+		badRequestResponse(c, "Invalid appointment ID")
 		return
 	}
 
-	session, err := h.services.Chat.GetChatSessionByAppointmentID(c.Request.Context(), appointmentID, userID.(int64))
+	session, err := h.chatService.GetChatSessionByAppointmentID(c.Request.Context(), appointmentID, userID)
 	if err != nil {
-		if err.Error() == "access denied: user not participant in appointment" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to get chat session by appointment: " + err.Error())
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if session == nil {
-		errorResponse(c, http.StatusNotFound, "chat session not found for this appointment")
+		notFoundResponse(c, err.Error())
 		return
 	}
 
 	successResponse(c, http.StatusOK, session)
 }
 
-func (h *Handler) getUserChatSessions(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
+// @Summary List chat sessions
+// @Description List chat sessions for the authenticated user
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Param specialization_id query int false "Filter by specialization ID"
+// @Param status query string false "Filter by status" Enums(pending,active,ended)
+// @Param limit query int false "Limit number of results" default(20)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {object} paginatedSuccessResponse{data=[]domain.ChatSession}
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/sessions [get]
+func (h *ChatHandler) ListChatSessions(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
 		return
 	}
 
-	filter := domain.ChatFilter{
-		Limit:  20,
-		Offset: 0,
-	}
+	var filter domain.ChatSessionFilter
 
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
-			filter.Limit = limit
+	if specializationIDStr := c.Query("specialization_id"); specializationIDStr != "" {
+		specializationID, err := strconv.ParseInt(specializationIDStr, 10, 64)
+		if err != nil {
+			badRequestResponse(c, "Invalid specialization_id")
+			return
 		}
+		filter.SpecializationID = &specializationID
 	}
 
-	if offsetStr := c.Query("offset"); offsetStr != "" {
-		if offset, err := strconv.Atoi(offsetStr); err == nil && offset >= 0 {
-			filter.Offset = offset
-		}
-	}
-
-	if status := c.Query("status"); status != "" {
+	if statusStr := c.Query("status"); statusStr != "" {
+		status := domain.ChatSessionStatus(statusStr)
 		filter.Status = &status
 	}
 
-	sessions, err := h.services.Chat.GetUserChatSessions(c.Request.Context(), userID.(int64), filter)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	filter.Limit = limit
+	filter.Offset = offset
+
+	sessions, totalCount, err := h.chatService.ListChatSessions(c.Request.Context(), userID, filter)
 	if err != nil {
-		h.logger.Error("Failed to get user chat sessions: " + err.Error())
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, sessions)
+	page := (offset / limit) + 1
+	paginatedSuccessResponse(c, sessions, int(totalCount), page, limit)
 }
 
-func (h *Handler) endChatSession(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
+// @Summary Update chat session
+// @Description Update a chat session (e.g., change status)
+// @Tags Chat
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Chat session ID"
+// @Param request body domain.UpdateChatSessionDTO true "Update data"
+// @Success 200 {object} successResponse{data=domain.ChatSession}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 404 {object} errorResponse
+// @Router /chat/sessions/{id} [patch]
+func (h *ChatHandler) UpdateChatSession(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+	
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "Invalid session ID")
 		return
 	}
 
-	sessionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid session ID")
+	var dto domain.UpdateChatSessionDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		badRequestResponse(c, "Invalid request body: " + err.Error())
 		return
 	}
 
-	err = h.services.Chat.EndChatSession(c.Request.Context(), sessionID, userID.(int64))
+	session, err := h.chatService.UpdateChatSession(c.Request.Context(), id, dto, userID)
 	if err != nil {
-		if err.Error() == "access denied: user not participant in chat session" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to end chat session: " + err.Error())
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, "Chat session ended successfully")
+	successResponse(c, http.StatusOK, session)
 }
 
-// Chat Messages Endpoints
-
-func (h *Handler) sendMessage(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
+// @Summary Send message
+// @Description Send a message in a chat session
+// @Tags Chat
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body domain.CreateChatMessageDTO true "Message data"
+// @Success 201 {object} successResponse{data=domain.ChatMessage}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/messages [post]
+func (h *ChatHandler) SendMessage(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
 		return
 	}
 
 	var dto domain.CreateChatMessageDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid request body: "+err.Error())
+		badRequestResponse(c, "Invalid request body: " + err.Error())
 		return
 	}
 
-	message, err := h.services.Chat.SendMessage(c.Request.Context(), dto, userID.(int64))
+	// Ensure sender ID matches authenticated user
+	dto.SenderID = userID
+
+	message, err := h.chatService.CreateChatMessage(c.Request.Context(), dto, userID)
 	if err != nil {
-		if err.Error() == "access denied: user not participant in chat session" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to send message: " + err.Error())
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusCreated, message)
+	createdResponse(c, message)
 }
 
-func (h *Handler) getMessages(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
+// @Summary Get messages
+// @Description Get messages for a chat session
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Param session_id path int true "Chat session ID"
+// @Param message_type query string false "Filter by message type" Enums(text,image,file,system)
+// @Param limit query int false "Limit number of results" default(50)
+// @Param offset query int false "Offset for pagination" default(0)
+// @Success 200 {object} paginatedSuccessResponse{data=[]domain.ChatMessage}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/sessions/{session_id}/messages [get]
+func (h *ChatHandler) GetMessages(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
 		return
 	}
-
+	
 	sessionID, err := strconv.ParseInt(c.Param("session_id"), 10, 64)
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid session ID")
+		badRequestResponse(c, "Invalid session ID")
 		return
 	}
 
-	filter := domain.MessageFilter{
-		Limit:  50,
-		Offset: 0,
+	var filter domain.ChatMessageFilter
+
+	if messageTypeStr := c.Query("message_type"); messageTypeStr != "" {
+		messageType := domain.MessageType(messageTypeStr)
+		filter.Type = &messageType
 	}
 
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
-			filter.Limit = limit
-		}
-	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	filter.Limit = limit
+	filter.Offset = offset
 
-	if offsetStr := c.Query("offset"); offsetStr != "" {
-		if offset, err := strconv.Atoi(offsetStr); err == nil && offset >= 0 {
-			filter.Offset = offset
-		}
-	}
-
-	if messageType := c.Query("message_type"); messageType != "" {
-		filter.MessageType = &messageType
-	}
-
-	messages, err := h.services.Chat.GetMessages(c.Request.Context(), sessionID, filter, userID.(int64))
+	messages, totalCount, err := h.chatService.ListChatMessages(c.Request.Context(), sessionID, userID, filter)
 	if err != nil {
-		if err.Error() == "access denied: user not participant in chat session" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to get messages: " + err.Error())
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, messages)
+	page := (offset / limit) + 1
+	paginatedSuccessResponse(c, messages, int(totalCount), page, limit)
 }
 
-func (h *Handler) markMessageAsRead(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
+// @Summary Mark messages as read
+// @Description Mark all unread messages in a session as read
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Param session_id path int true "Chat session ID"
+// @Success 200 {object} successResponse{data=string}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/sessions/{session_id}/read [post]
+func (h *ChatHandler) MarkMessagesAsRead(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+	
+	sessionID, err := strconv.ParseInt(c.Param("session_id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "Invalid session ID")
 		return
 	}
 
-	messageID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	err = h.chatService.MarkMessagesAsRead(c.Request.Context(), sessionID, userID)
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid message ID")
-		return
-	}
-
-	err = h.services.Chat.MarkMessageAsRead(c.Request.Context(), messageID, userID.(int64))
-	if err != nil {
-		if err.Error() == "access denied: user cannot access this message" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to mark message as read: " + err.Error())
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, "Message marked as read")
+	successResponse(c, http.StatusOK, "Messages marked as read")
 }
 
-func (h *Handler) startVideoCall(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
-		return
-	}
-
-	var dto domain.CreateVideoCallSessionDTO
-	if err := c.ShouldBindJSON(&dto); err != nil {
-		errorResponse(c, http.StatusBadRequest, "invalid request body: "+err.Error())
-		return
-	}
-
-	videoCall, err := h.services.Chat.StartVideoCall(c.Request.Context(), dto, userID.(int64))
+// @Summary Get unread message count
+// @Description Get count of unread messages in a session
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Param session_id path int true "Chat session ID"
+// @Success 200 {object} successResponse{data=int64}
+// @Failure 400 {object} errorResponse
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/sessions/{session_id}/unread [get]
+func (h *ChatHandler) GetUnreadMessageCount(c *gin.Context) {
+	userID, err := getUserID(c)
 	if err != nil {
-		if err.Error() == "access denied: user not participant in chat session" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to start video call: " + err.Error())
+		unauthorizedResponse(c)
+		return
+	}
+	
+	sessionID, err := strconv.ParseInt(c.Param("session_id"), 10, 64)
+	if err != nil {
+		badRequestResponse(c, "Invalid session ID")
+		return
+	}
+
+	count, err := h.chatService.GetUnreadMessageCount(c.Request.Context(), sessionID, userID)
+	if err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusCreated, videoCall)
+	successResponse(c, http.StatusOK, count)
 }
 
-func (h *Handler) getVideoCallSession(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "user not authenticated")
-		return
-	}
-
-	callID := c.Param("id")
-	if callID == "" {
-		errorResponse(c, http.StatusBadRequest, "invalid call ID")
-		return
-	}
-
-	videoCall, err := h.services.Chat.GetVideoCallSession(c.Request.Context(), callID, userID.(int64))
+// @Summary Get user chat summary
+// @Description Get summary of user's chat sessions with unread counts
+// @Tags Chat
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} successResponse{data=map[string]interface{}}
+// @Failure 401 {object} errorResponse
+// @Failure 500 {object} errorResponse
+// @Router /chat/summary [get]
+func (h *ChatHandler) GetChatSummary(c *gin.Context) {
+	userID, err := getUserID(c)
 	if err != nil {
-		if err.Error() == "access denied: user cannot access this video call" {
-			errorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-		h.logger.Error("Failed to get video call session: " + err.Error())
+		unauthorizedResponse(c)
+		return
+	}
+
+	summary, err := h.chatService.GetUserChatSummary(c.Request.Context(), userID)
+	if err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if videoCall == nil {
-		errorResponse(c, http.StatusNotFound, "video call session not found")
-		return
-	}
-
-	successResponse(c, http.StatusOK, videoCall)
-} 
+	successResponse(c, http.StatusOK, summary)
+}
