@@ -59,7 +59,8 @@ func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (
 			sp.name as specialization_name
 		FROM chat_sessions cs
 		LEFT JOIN users uc ON cs.client_id = uc.id
-		LEFT JOIN users us ON cs.specialist_id = us.id
+		LEFT JOIN specialists s ON cs.specialist_id = s.id
+		LEFT JOIN users us ON s.user_id = us.id
 		LEFT JOIN specializations sp ON cs.specialization_id = sp.id
 		WHERE cs.id = $1`
 
@@ -95,7 +96,8 @@ func (r *ChatRepositoryImpl) GetChatSessionByAppointmentID(ctx context.Context, 
 			sp.name as specialization_name
 		FROM chat_sessions cs
 		LEFT JOIN users uc ON cs.client_id = uc.id
-		LEFT JOIN users us ON cs.specialist_id = us.id
+		LEFT JOIN specialists s ON cs.specialist_id = s.id
+		LEFT JOIN users us ON s.user_id = us.id
 		LEFT JOIN specializations sp ON cs.specialization_id = sp.id
 		WHERE cs.appointment_id = $1`
 
@@ -135,7 +137,8 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 			sp.name as specialization_name
 		FROM chat_sessions cs
 		LEFT JOIN users uc ON cs.client_id = uc.id
-		LEFT JOIN users us ON cs.specialist_id = us.id
+		LEFT JOIN specialists s ON cs.specialist_id = s.id
+		LEFT JOIN users us ON s.user_id = us.id
 		LEFT JOIN specializations sp ON cs.specialization_id = sp.id`
 
 	if filter.ClientID != nil {
@@ -360,9 +363,9 @@ func (r *ChatRepositoryImpl) ListChatMessages(ctx context.Context, filter domain
 	baseQuery := `
 		SELECT 
 			cm.id, cm.session_id, cm.sender_id, cm.message_type, cm.content, 
-			cm.file_url, cm.file_name, cm.file_size, cm.is_read, cm.read_at, 
-			cm.created_at, cm.updated_at,
-			u.full_name as sender_name,
+		       cm.file_url, cm.file_name, cm.file_size, cm.is_read, cm.read_at, 
+		       cm.created_at, cm.updated_at,
+			CONCAT(u.first_name, ' ', u.last_name) as sender_name,
 			CASE 
 				WHEN cs.client_id = cm.sender_id THEN 'client'
 				WHEN cs.specialist_id = cm.sender_id THEN 'specialist'
@@ -509,4 +512,4 @@ func (r *ChatRepositoryImpl) GetUnreadMessageCount(ctx context.Context, sessionI
 	var count int64
 	err := r.db.QueryRow(ctx, query, sessionID, userID).Scan(&count)
 	return count, err
-}
+} 

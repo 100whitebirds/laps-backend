@@ -74,7 +74,20 @@ func (s *ChatServiceImpl) GetChatSessionByID(ctx context.Context, id int64, user
 	}
 
 	// Check if user has access to this chat session
-	if session.ClientID != userID && session.SpecialistID != userID {
+	hasAccess := false
+	
+	// Check if user is the client
+	if session.ClientID == userID {
+		hasAccess = true
+	} else {
+		// Check if user is the specialist by looking up their specialist record
+		specialist, err := s.specialistRepo.GetByUserID(ctx, userID)
+		if err == nil && specialist.ID == session.SpecialistID {
+			hasAccess = true
+		}
+	}
+	
+	if !hasAccess {
 		return nil, errors.New("access denied to chat session")
 	}
 
@@ -88,7 +101,20 @@ func (s *ChatServiceImpl) GetChatSessionByAppointmentID(ctx context.Context, app
 	}
 
 	// Check if user has access to this chat session
-	if session.ClientID != userID && session.SpecialistID != userID {
+	hasAccess := false
+	
+	// Check if user is the client
+	if session.ClientID == userID {
+		hasAccess = true
+	} else {
+		// Check if user is the specialist by looking up their specialist record
+		specialist, err := s.specialistRepo.GetByUserID(ctx, userID)
+		if err == nil && specialist.ID == session.SpecialistID {
+			hasAccess = true
+		}
+	}
+	
+	if !hasAccess {
 		return nil, errors.New("access denied to chat session")
 	}
 
@@ -106,7 +132,12 @@ func (s *ChatServiceImpl) ListChatSessions(ctx context.Context, userID int64, fi
 	if user.Role == domain.UserRoleClient {
 		filter.ClientID = &userID
 	} else if user.Role == domain.UserRoleSpecialist {
-		filter.SpecialistID = &userID
+		// For specialists, we need to find their specialist_id, not use their user_id
+		specialist, err := s.specialistRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("specialist not found for user_id %d: %w", userID, err)
+		}
+		filter.SpecialistID = &specialist.ID
 	} else {
 		return nil, 0, errors.New("invalid user role for chat access")
 	}
@@ -182,7 +213,20 @@ func (s *ChatServiceImpl) CreateChatMessage(ctx context.Context, dto domain.Crea
 	}
 
 	// Validate that the user is either client or specialist in this session
-	if session.ClientID != userID && session.SpecialistID != userID {
+	hasAccess := false
+	
+	// Check if user is the client
+	if session.ClientID == userID {
+		hasAccess = true
+	} else {
+		// Check if user is the specialist by looking up their specialist record
+		specialist, err := s.specialistRepo.GetByUserID(ctx, userID)
+		if err == nil && specialist.ID == session.SpecialistID {
+			hasAccess = true
+		}
+	}
+	
+	if !hasAccess {
 		return nil, errors.New("user not authorized to send messages in this session")
 	}
 
