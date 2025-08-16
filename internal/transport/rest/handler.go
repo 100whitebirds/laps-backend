@@ -237,6 +237,9 @@ func (h *Handler) initChatRoutes(api *gin.RouterGroup) {
 		
 		// Chat summary
 		chat.GET("/summary", chatHandler.GetChatSummary)
+		
+		// Call status
+		chat.GET("/session/:session_id/call-status", h.getChatCallStatus)
 	}
 }
 
@@ -308,4 +311,46 @@ func (h *Handler) getSpecialistAppointments(c *gin.Context) {
 	page := offset/limit + 1
 
 	paginatedSuccessResponse(c, appointments, total, page, limit)
+}
+
+func (h *Handler) getChatCallStatus(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		unauthorizedResponse(c)
+		return
+	}
+
+	sessionIDStr := c.Param("session_id")
+	sessionID, err := strconv.ParseInt(sessionIDStr, 10, 64)
+	if err != nil {
+		badRequestResponse(c, "Invalid session ID")
+		return
+	}
+
+	// Get chat session to verify access
+	session, err := h.services.Chat.GetChatSessionByID(c.Request.Context(), sessionID, userID)
+	if err != nil {
+		notFoundResponse(c, "Chat session not found")
+		return
+	}
+
+	// Get active call between the participants
+	activeCall := h.signalingHub.GetActiveCallForUsers(session.ClientID, session.SpecialistID)
+	
+	response := gin.H{
+		"has_active_call": activeCall != nil,
+		"call_session": nil,
+	}
+	
+	if activeCall != nil {
+		response["call_session"] = gin.H{
+			"id":            activeCall.ID,
+			"status":        activeCall.Status,
+			"client_id":     activeCall.ClientID,
+			"specialist_id": activeCall.SpecialistID,
+			"created_at":    activeCall.CreatedAt,
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }

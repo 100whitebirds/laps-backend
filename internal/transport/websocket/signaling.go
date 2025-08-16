@@ -22,7 +22,7 @@ type SignalingMessage struct {
 	From      int64       `json:"from"`
 	To        int64       `json:"to"`
 	Data      interface{} `json:"data,omitempty"`
-	Timestamp time.Time   `json:"timestamp"`
+	Timestamp string      `json:"timestamp"`
 }
 
 // Client represents a connected WebSocket client
@@ -75,8 +75,29 @@ type CallSession struct {
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, you should validate the origin
-		return true
+		// Allow connections from localhost and development origins
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // Allow connections without Origin header (for testing)
+		}
+		
+		// Allow localhost and development origins
+		allowedOrigins := []string{
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+			"https://localhost:3000",
+			"https://127.0.0.1:3000",
+		}
+		
+		for _, allowed := range allowedOrigins {
+			if origin == allowed {
+				return true
+			}
+		}
+		
+		// In production, add your domain here
+		// return origin == "https://yourdomain.com"
+		return true // For now, allow all origins during development
 	},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -133,8 +154,26 @@ func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
+	h.logger.Info("🔔 [BACKEND] Processing signaling message", 
+		zap.String("type", msg.Type),
+		zap.Int64("from", msg.From),
+		zap.Int64("to", msg.To),
+		zap.String("session_id", msg.SessionID))
+
+	// Check if target user is connected
+	if _, exists := h.clients[msg.To]; !exists {
+		h.logger.Warn("❌ [BACKEND] Target user not connected", 
+			zap.Int64("target_user_id", msg.To),
+			zap.String("message_type", msg.Type))
+	} else {
+		h.logger.Info("✅ [BACKEND] Target user is connected", 
+			zap.Int64("target_user_id", msg.To),
+			zap.String("message_type", msg.Type))
+	}
+
 	switch msg.Type {
 	case "call-offer":
+		h.logger.Info("📞 [BACKEND] Handling call-offer message")
 		h.handleCallOffer(msg)
 	case "call-answer":
 		h.handleCallAnswer(msg)
@@ -151,6 +190,11 @@ func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
 
 // handleCallOffer processes call offer messages
 func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
+	h.logger.Info("📞 [BACKEND] Processing call-offer", 
+		zap.String("session_id", msg.SessionID),
+		zap.Int64("from", msg.From),
+		zap.Int64("to", msg.To))
+
 	// Create new call session
 	session := &CallSession{
 		ID:           msg.SessionID,
@@ -161,16 +205,25 @@ func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
 	}
 
 	h.sessions[msg.SessionID] = session
+	h.logger.Info("📞 [BACKEND] Call session created", zap.String("session_id", msg.SessionID))
 
 	// Forward offer to target user
 	if targetClient, exists := h.clients[msg.To]; exists {
+		h.logger.Info("📞 [BACKEND] Target client found, forwarding call-offer", 
+			zap.Int64("target_user_id", msg.To),
+			zap.String("session_id", msg.SessionID))
+		
 		h.sendMessageToClient(targetClient, msg)
-		h.logger.Info("Call offer forwarded", 
+		
+		h.logger.Info("✅ [BACKEND] Call offer forwarded successfully", 
 			zap.String("session_id", msg.SessionID),
 			zap.Int64("from", msg.From),
 			zap.Int64("to", msg.To))
 	} else {
-		h.logger.Warn("Target user not connected", zap.Int64("user_id", msg.To))
+		h.logger.Warn("❌ [BACKEND] Target user not connected", 
+			zap.Int64("user_id", msg.To),
+			zap.String("session_id", msg.SessionID))
+		
 		// Send error back to caller
 		errorMsg := &SignalingMessage{
 			Type:      "call-error",
@@ -178,9 +231,11 @@ func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
 			From:      msg.To,
 			To:        msg.From,
 			Data:      map[string]string{"error": "User not available"},
-			Timestamp: time.Now(),
+			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		if callerClient, exists := h.clients[msg.From]; exists {
+			h.logger.Info("📞 [BACKEND] Sending call-error back to caller", 
+				zap.Int64("caller_id", msg.From))
 			h.sendMessageToClient(callerClient, errorMsg)
 		}
 	}
@@ -235,7 +290,7 @@ func (h *SignalingHub) handlePing(msg *SignalingMessage) {
 		SessionID: msg.SessionID,
 		From:      msg.To,
 		To:        msg.From,
-		Timestamp: time.Now(),
+		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
 	if client, exists := h.clients[msg.From]; exists {
@@ -245,15 +300,29 @@ func (h *SignalingHub) handlePing(msg *SignalingMessage) {
 
 // sendMessageToClient sends a message to a specific client
 func (h *SignalingHub) sendMessageToClient(client *Client, msg *SignalingMessage) {
+	h.logger.Info("📤 [BACKEND] Attempting to send message to client", 
+		zap.String("message_type", msg.Type),
+		zap.Int64("target_user_id", client.UserID),
+		zap.Int64("from", msg.From),
+		zap.Int64("to", msg.To),
+		zap.String("session_id", msg.SessionID))
+
 	data, err := json.Marshal(msg)
 	if err != nil {
-		h.logger.Error("Failed to marshal message", zap.Error(err))
+		h.logger.Error("❌ [BACKEND] Failed to marshal message", zap.Error(err))
 		return
 	}
 
 	select {
 	case client.Send <- data:
+		h.logger.Info("✅ [BACKEND] Message sent successfully to client", 
+			zap.String("message_type", msg.Type),
+			zap.Int64("target_user_id", client.UserID),
+			zap.String("session_id", msg.SessionID))
 	default:
+		h.logger.Warn("❌ [BACKEND] Failed to send message - client channel full or closed", 
+			zap.Int64("user_id", client.UserID),
+			zap.String("message_type", msg.Type))
 		delete(h.clients, client.UserID)
 		close(client.Send)
 	}
@@ -278,7 +347,12 @@ func (h *SignalingHub) HandleWebSocket(c *gin.Context) {
 	
 	// Temporary simple validation - just check if user exists in system
 	if userIDStr == "" || roleStr == "" {
-		h.logger.Warn("Missing user_id or role in WebSocket request")
+		h.logger.Warn("Missing user_id or role in WebSocket request", 
+			zap.String("user_id", userIDStr), 
+			zap.String("role", roleStr),
+			zap.String("token_present", func() string {
+				if tokenStr != "" { return "yes" } else { return "no" }
+			}()))
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id and role required"})
 		return
 	}
@@ -355,7 +429,7 @@ func (c *Client) readPump() {
 
 		// Set sender info
 		msg.From = c.UserID
-		msg.Timestamp = time.Now()
+		msg.Timestamp = time.Now().Format(time.RFC3339)
 
 		// Re-marshal with corrected info
 		correctedMessage, err := json.Marshal(msg)
@@ -431,4 +505,49 @@ func (h *SignalingHub) IsUserConnected(userID int64) bool {
 
 	_, exists := h.clients[userID]
 	return exists
+}
+
+// GetActiveCallForUsers returns active call session between two users
+func (h *SignalingHub) GetActiveCallForUsers(userID1, userID2 int64) *CallSession {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	for _, session := range h.sessions {
+		if session.Status == "active" || session.Status == "waiting" {
+			if (session.ClientID == userID1 && session.SpecialistID == userID2) ||
+				(session.ClientID == userID2 && session.SpecialistID == userID1) {
+				return session
+			}
+		}
+	}
+	return nil
+}
+
+// GetActiveCallBySessionID returns active call session by ID
+func (h *SignalingHub) GetActiveCallBySessionID(sessionID string) *CallSession {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	if session, exists := h.sessions[sessionID]; exists {
+		if session.Status == "active" || session.Status == "waiting" {
+			return session
+		}
+	}
+	return nil
+}
+
+// GetAllActiveCallsForUser returns all active calls for a user
+func (h *SignalingHub) GetAllActiveCallsForUser(userID int64) []*CallSession {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	var activeCalls []*CallSession
+	for _, session := range h.sessions {
+		if session.Status == "active" || session.Status == "waiting" {
+			if session.ClientID == userID || session.SpecialistID == userID {
+				activeCalls = append(activeCalls, session)
+			}
+		}
+	}
+	return activeCalls
 } 
