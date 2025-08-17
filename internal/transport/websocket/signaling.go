@@ -151,9 +151,6 @@ func (h *SignalingHub) Run() {
 
 // handleSignalingMessage processes incoming signaling messages
 func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
-
 	h.logger.Info("🔔 [BACKEND] Processing signaling message", 
 		zap.String("type", msg.Type),
 		zap.Int64("from", msg.From),
@@ -190,16 +187,48 @@ func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
 
 // handleCallOffer processes call offer messages
 func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
 	h.logger.Info("📞 [BACKEND] Processing call-offer", 
 		zap.String("session_id", msg.SessionID),
 		zap.Int64("from", msg.From),
 		zap.Int64("to", msg.To))
+	
+	// Log all connected clients for debugging
+	var connectedClients []int64
+	for clientID := range h.clients {
+		connectedClients = append(connectedClients, clientID)
+	}
+	h.logger.Info("📞 [BACKEND] Currently connected clients", 
+		zap.Int64s("client_ids", connectedClients))
 
 	// Create new call session
+	fromClient, fromExists := h.clients[msg.From]
+	toClient, toExists := h.clients[msg.To]
+
+	if !fromExists || !toExists {
+		h.logger.Error("Could not find one or both clients for call",
+			zap.Int64("from_id", msg.From),
+			zap.Bool("from_exists", fromExists),
+			zap.Int64("to_id", msg.To),
+			zap.Bool("to_exists", toExists))
+		return
+	}
+
+	var clientID, specialistID int64
+	if fromClient.Role == "client" {
+		clientID = fromClient.UserID
+		specialistID = toClient.UserID
+	} else {
+		clientID = toClient.UserID
+		specialistID = fromClient.UserID
+	}
+
 	session := &CallSession{
 		ID:           msg.SessionID,
-		ClientID:     msg.From,
-		SpecialistID: msg.To,
+		ClientID:     clientID,
+		SpecialistID: specialistID,
 		Status:       "waiting",
 		CreatedAt:    time.Now(),
 	}
@@ -211,7 +240,9 @@ func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
 	if targetClient, exists := h.clients[msg.To]; exists {
 		h.logger.Info("📞 [BACKEND] Target client found, forwarding call-offer", 
 			zap.Int64("target_user_id", msg.To),
-			zap.String("session_id", msg.SessionID))
+			zap.String("session_id", msg.SessionID),
+			zap.Bool("client_exists", targetClient != nil),
+			zap.Bool("send_channel_exists", targetClient != nil && targetClient.Send != nil))
 		
 		h.sendMessageToClient(targetClient, msg)
 		
@@ -243,6 +274,9 @@ func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
 
 // handleCallAnswer processes call answer messages
 func (h *SignalingHub) handleCallAnswer(msg *SignalingMessage) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
 	// Update session status
 	if session, exists := h.sessions[msg.SessionID]; exists {
 		session.Status = "active"
@@ -260,6 +294,9 @@ func (h *SignalingHub) handleCallAnswer(msg *SignalingMessage) {
 
 // handleIceCandidate processes ICE candidate messages
 func (h *SignalingHub) handleIceCandidate(msg *SignalingMessage) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
 	// Forward ICE candidate to the other peer
 	if targetClient, exists := h.clients[msg.To]; exists {
 		h.sendMessageToClient(targetClient, msg)
@@ -268,6 +305,9 @@ func (h *SignalingHub) handleIceCandidate(msg *SignalingMessage) {
 
 // handleCallEnd processes call end messages
 func (h *SignalingHub) handleCallEnd(msg *SignalingMessage) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
 	// Update session status
 	if session, exists := h.sessions[msg.SessionID]; exists {
 		session.Status = "ended"
@@ -285,6 +325,9 @@ func (h *SignalingHub) handleCallEnd(msg *SignalingMessage) {
 
 // handlePing processes ping messages for connection keepalive
 func (h *SignalingHub) handlePing(msg *SignalingMessage) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
 	pongMsg := &SignalingMessage{
 		Type:      "pong",
 		SessionID: msg.SessionID,
@@ -299,6 +342,7 @@ func (h *SignalingHub) handlePing(msg *SignalingMessage) {
 }
 
 // sendMessageToClient sends a message to a specific client
+// NOTE: This function should only be called when the mutex is already held
 func (h *SignalingHub) sendMessageToClient(client *Client, msg *SignalingMessage) {
 	h.logger.Info("📤 [BACKEND] Attempting to send message to client", 
 		zap.String("message_type", msg.Type),
@@ -323,8 +367,9 @@ func (h *SignalingHub) sendMessageToClient(client *Client, msg *SignalingMessage
 		h.logger.Warn("❌ [BACKEND] Failed to send message - client channel full or closed", 
 			zap.Int64("user_id", client.UserID),
 			zap.String("message_type", msg.Type))
-		delete(h.clients, client.UserID)
-		close(client.Send)
+		// Don't modify the clients map here - let the cleanup happen in the main hub loop
+		// This prevents race conditions and deadlocks
+		// The client will be removed when the connection closes naturally
 	}
 }
 
@@ -461,9 +506,17 @@ func (c *Client) writePump() {
 
 			w, err := c.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				c.Hub.logger.Error("Failed to get writer for WebSocket connection",
+					zap.Int64("user_id", c.UserID),
+					zap.Error(err))
 				return
 			}
-			w.Write(message)
+			if _, err := w.Write(message); err != nil {
+				c.Hub.logger.Error("Failed to write message to WebSocket",
+					zap.Int64("user_id", c.UserID),
+					zap.Error(err))
+				return
+			}
 
 			// Add queued messages to the current message
 			n := len(c.Send)
