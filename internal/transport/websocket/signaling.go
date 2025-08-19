@@ -99,8 +99,8 @@ var upgrader = websocket.Upgrader{
 		// return origin == "https://yourdomain.com"
 		return true // For now, allow all origins during development
 	},
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  65536,
+	WriteBufferSize: 65536,
 }
 
 // NewSignalingHub creates a new signaling hub
@@ -169,6 +169,9 @@ func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
 	}
 
 	switch msg.Type {
+	case "call-invitation":
+		h.logger.Info("📞 [BACKEND] Handling call-invitation message")
+		h.handleCallInvitation(msg)
 	case "call-offer":
 		h.logger.Info("📞 [BACKEND] Handling call-offer message")
 		h.handleCallOffer(msg)
@@ -182,6 +185,58 @@ func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
 		h.handlePing(msg)
 	default:
 		h.logger.Warn("Unknown message type", zap.String("type", msg.Type))
+	}
+}
+
+// handleCallInvitation processes call invitation messages (for UI notification)
+func (h *SignalingHub) handleCallInvitation(msg *SignalingMessage) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	h.logger.Info("📞 [BACKEND] Processing call-invitation", 
+		zap.String("session_id", msg.SessionID),
+		zap.Int64("from", msg.From),
+		zap.Int64("to", msg.To))
+	
+	// Log all connected clients for debugging
+	var connectedClients []int64
+	for clientID := range h.clients {
+		connectedClients = append(connectedClients, clientID)
+	}
+	h.logger.Info("📞 [BACKEND] Currently connected clients", 
+		zap.Int64s("client_ids", connectedClients))
+
+	// Forward invitation to target user
+	if targetClient, exists := h.clients[msg.To]; exists {
+		h.logger.Info("📞 [BACKEND] Target client found, forwarding call-invitation", 
+			zap.Int64("target_user_id", msg.To),
+			zap.String("session_id", msg.SessionID))
+		
+		h.sendMessageToClient(targetClient, msg)
+		
+		h.logger.Info("✅ [BACKEND] Call invitation forwarded successfully", 
+			zap.String("session_id", msg.SessionID),
+			zap.Int64("from", msg.From),
+			zap.Int64("to", msg.To))
+	} else {
+		h.logger.Warn("❌ [BACKEND] Target user not connected for call invitation", 
+			zap.Int64("user_id", msg.To),
+			zap.String("session_id", msg.SessionID))
+		
+		// Send error back to caller
+		errorMsg := &SignalingMessage{
+			Type:      "call-error",
+			SessionID: msg.SessionID,
+			From:      msg.To,
+			To:        msg.From,
+			Data:      map[string]string{"error": "User not available"},
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		if callerClient, exists := h.clients[msg.From]; exists {
+			h.logger.Info("📞 [BACKEND] Sending call-error back to caller", 
+				zap.Int64("caller_id", msg.From))
+			h.sendMessageToClient(callerClient, errorMsg)
+		}
 	}
 }
 
@@ -449,7 +504,8 @@ func (c *Client) readPump() {
 		c.Conn.Close()
 	}()
 
-	c.Conn.SetReadLimit(512)
+	// Allow large SDP payloads and batches of ICE candidates (up to 10MB)
+	c.Conn.SetReadLimit(10 * 1024 * 1024)
 	c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	c.Conn.SetPongHandler(func(string) error {
 		c.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
@@ -504,28 +560,11 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				c.Hub.logger.Error("Failed to get writer for WebSocket connection",
-					zap.Int64("user_id", c.UserID),
-					zap.Error(err))
-				return
-			}
-			if _, err := w.Write(message); err != nil {
+			// Send exactly one message per frame to avoid huge concatenated frames
+			if err := c.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				c.Hub.logger.Error("Failed to write message to WebSocket",
 					zap.Int64("user_id", c.UserID),
 					zap.Error(err))
-				return
-			}
-
-			// Add queued messages to the current message
-			n := len(c.Send)
-			for i := 0; i < n; i++ {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.Send)
-			}
-
-			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
