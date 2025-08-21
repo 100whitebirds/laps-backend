@@ -179,6 +179,8 @@ func (h *SignalingHub) handleSignalingMessage(msg *SignalingMessage) {
 		h.handleCallAnswer(msg)
 	case "ice-candidate":
 		h.handleIceCandidate(msg)
+	case "call-reject":
+		h.handleCallReject(msg)
 	case "call-end":
 		h.handleCallEnd(msg)
 	case "ping":
@@ -355,6 +357,31 @@ func (h *SignalingHub) handleIceCandidate(msg *SignalingMessage) {
 	// Forward ICE candidate to the other peer
 	if targetClient, exists := h.clients[msg.To]; exists {
 		h.sendMessageToClient(targetClient, msg)
+	}
+}
+
+// handleCallReject handles call rejection messages
+func (h *SignalingHub) handleCallReject(msg *SignalingMessage) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	h.logger.Info("Processing call-reject", 
+		zap.String("session_id", msg.SessionID),
+		zap.Int64("from", msg.From),
+		zap.Int64("to", msg.To))
+
+	// Forward rejection to the caller
+	if targetClient, exists := h.clients[msg.To]; exists {
+		h.sendMessageToClient(targetClient, msg)
+		h.logger.Info("Call rejection forwarded to caller", 
+			zap.Int64("caller_id", msg.To))
+	}
+
+	// Remove session if it exists
+	if _, exists := h.sessions[msg.SessionID]; exists {
+		delete(h.sessions, msg.SessionID)
+		h.logger.Info("Session removed after rejection", 
+			zap.String("session_id", msg.SessionID))
 	}
 }
 
