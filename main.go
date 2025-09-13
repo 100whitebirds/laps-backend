@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -44,6 +45,13 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	// DEBUG: Print all environment variables
+	fmt.Println("==== ENVIRONMENT VARIABLES ====")
+	for _, e := range os.Environ() {
+		fmt.Println(e)
+	}
+	fmt.Println("==============================")
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		panic(err)
@@ -54,6 +62,15 @@ func main() {
 	if err != nil {
 		logger.Fatal("Не удалось загрузить конфигурацию", zap.Error(err))
 	}
+
+	// DEBUG: Print DB connection config (without password)
+	fmt.Printf("Connecting to DB with:\nHost: %s\nPort: %s\nUser: %s\nDB: %s\nSSLMode: %s\n",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.Username,
+		cfg.Postgres.DBName,
+		cfg.Postgres.SSLMode,
+	)
 
 	db, err := database.NewPostgresDB(cfg.Postgres)
 	if err != nil {
