@@ -6,8 +6,6 @@
   },
   "deploy": {
     "startCommand": "./laps",
-    "healthcheckPath": "/api/v1/test-no-auth",
-    "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
