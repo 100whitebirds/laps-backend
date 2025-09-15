@@ -87,7 +87,8 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		       s.recommendation_rate, s.primary_consult_price, s.secondary_consult_price, 
 		       s.is_verified, s.profile_photo_url, s.created_at, s.updated_at,
 		       s.specialization_id,
-			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, u.created_at, u.updated_at,
+			   u.id, u.email, u.phone, u.first_name, u.last_name, u.middle_name, u.role, 
+			   u.is_active, u.created_at, u.updated_at,
 			   sp.name
 		FROM specialists s
 		JOIN users u ON s.user_id = u.id
@@ -125,6 +126,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&user.LastName,
 		&user.MiddleName,
 		&user.Role,
+		&user.IsActive,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&specializationName,
