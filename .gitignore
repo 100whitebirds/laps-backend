@@ -34,8 +34,10 @@ vendor/
 
 # Database files
 *.db
-*.sql
 *.sqlite
+# Ignore SQL dumps but keep migrations
+*.sql
+!migrations/*.sql
 
 # OS specific
 .DS_Store
