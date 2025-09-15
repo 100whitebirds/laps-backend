@@ -61,6 +61,11 @@ func (h *Handler) getSpecialists(c *gin.Context) {
 		return
 	}
 
+	// Handle empty results gracefully
+	if specialists == nil {
+		specialists = []domain.Specialist{}
+	}
+
 	date := c.Query("date")
 	if date != "" {
 		// Проверка формата даты
