@@ -64,9 +64,18 @@ func (h *Handler) errorMiddleware() gin.HandlerFunc {
 }
 
 func (h *Handler) corsMiddleware() gin.HandlerFunc {
+	// Debug: Log CORS configuration at startup
+	h.logger.Info("CORS middleware initialized", 
+		zap.Strings("allowed_origins", h.config.CORS.AllowedOrigins))
+	
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 		if origin != "" {
+			// Debug: Log incoming origin
+			h.logger.Info("CORS check", 
+				zap.String("incoming_origin", origin),
+				zap.Strings("allowed_origins", h.config.CORS.AllowedOrigins))
+			
 			// Check if origin is in allowed origins list
 			allowed := false
 			for _, allowedOrigin := range h.config.CORS.AllowedOrigins {
