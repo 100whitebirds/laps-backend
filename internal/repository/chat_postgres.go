@@ -23,8 +23,11 @@ func NewChatRepository(db *pgxpool.Pool) *ChatRepositoryImpl {
 
 func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.CreateChatSessionDTO) (*domain.ChatSession, error) {
 	query := `
-		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, status)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, status, client_name, specialist_name)
+		VALUES ($1, $2, $3, $4, 
+			(SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = $2),
+			(SELECT CONCAT(u.first_name, ' ', u.last_name) FROM specialists s JOIN users u ON s.user_id = u.id WHERE s.id = $3)
+		)
 		RETURNING id, appointment_id, client_id, specialist_id, status, created_at, updated_at`
 
 	status := dto.Status
