@@ -30,8 +30,6 @@ type ChatSession struct {
 	ClientID      int64             `json:"client_id" db:"client_id"`
 	SpecialistID  int64             `json:"specialist_id" db:"specialist_id"`
 	Status        ChatSessionStatus `json:"status" db:"status"`
-	StartedAt     *time.Time        `json:"started_at,omitempty" db:"started_at"`
-	EndedAt       *time.Time        `json:"ended_at,omitempty" db:"ended_at"`
 	CreatedAt     time.Time         `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time         `json:"updated_at" db:"updated_at"`
 	
@@ -98,9 +96,7 @@ type CreateChatMessageDTO struct {
 
 // UpdateChatSessionDTO represents the data that can be updated for a chat session
 type UpdateChatSessionDTO struct {
-	Status    *ChatSessionStatus `json:"status,omitempty"`
-	StartedAt *time.Time         `json:"started_at,omitempty"`
-	EndedAt   *time.Time         `json:"ended_at,omitempty"`
+	Status *ChatSessionStatus `json:"status,omitempty"`
 }
 
 // ChatSessionFilter represents filters for querying chat sessions

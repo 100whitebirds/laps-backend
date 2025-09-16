@@ -25,7 +25,7 @@ func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.C
 	query := `
 		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, status)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, appointment_id, client_id, specialist_id, status, started_at, ended_at, created_at, updated_at`
+		RETURNING id, appointment_id, client_id, specialist_id, status, created_at, updated_at`
 
 	status := dto.Status
 	if status == "" {
@@ -39,8 +39,6 @@ func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.C
 		&session.ClientID,
 		&session.SpecialistID,
 		&session.Status,
-		&session.StartedAt,
-		&session.EndedAt,
 		&session.CreatedAt,
 		&session.UpdatedAt,
 	)
@@ -52,7 +50,7 @@ func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (
 	query := `
 		SELECT 
 			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, 
-			cs.status, cs.started_at, cs.ended_at, cs.created_at, cs.updated_at,
+			cs.status, cs.created_at, cs.updated_at,
 			CONCAT(uc.first_name, ' ', uc.last_name) as client_name, uc.phone as client_phone,
 			CONCAT(us.first_name, ' ', us.last_name) as specialist_name, us.phone as specialist_phone,
 			s.specialization_id, sp.name as specialization_name
@@ -70,8 +68,6 @@ func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (
 		&session.ClientID,
 		&session.SpecialistID,
 		&session.Status,
-		&session.StartedAt,
-		&session.EndedAt,
 		&session.CreatedAt,
 		&session.UpdatedAt,
 		&session.ClientName,
@@ -89,7 +85,7 @@ func (r *ChatRepositoryImpl) GetChatSessionByAppointmentID(ctx context.Context, 
 	query := `
 		SELECT 
 			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, 
-			cs.status, cs.started_at, cs.ended_at, cs.created_at, cs.updated_at,
+			cs.status, cs.created_at, cs.updated_at,
 			CONCAT(uc.first_name, ' ', uc.last_name) as client_name, uc.phone as client_phone,
 			CONCAT(us.first_name, ' ', us.last_name) as specialist_name, us.phone as specialist_phone,
 			s.specialization_id, sp.name as specialization_name
@@ -107,8 +103,6 @@ func (r *ChatRepositoryImpl) GetChatSessionByAppointmentID(ctx context.Context, 
 		&session.ClientID,
 		&session.SpecialistID,
 		&session.Status,
-		&session.StartedAt,
-		&session.EndedAt,
 		&session.CreatedAt,
 		&session.UpdatedAt,
 		&session.ClientName,
@@ -130,7 +124,7 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 	baseQuery := `
 		SELECT 
 			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, 
-			cs.status, cs.started_at, cs.ended_at, cs.created_at, cs.updated_at,
+			cs.status, cs.created_at, cs.updated_at,
 			CONCAT(uc.first_name, ' ', uc.last_name) as client_name, uc.phone as client_phone,
 			CONCAT(us.first_name, ' ', us.last_name) as specialist_name, us.phone as specialist_phone,
 			s.specialization_id, sp.name as specialization_name
@@ -282,17 +276,6 @@ func (r *ChatRepositoryImpl) UpdateChatSession(ctx context.Context, id int64, dt
 		argCount++
 	}
 
-	if dto.StartedAt != nil {
-		setParts = append(setParts, fmt.Sprintf("started_at = $%d", argCount))
-		args = append(args, *dto.StartedAt)
-		argCount++
-	}
-
-	if dto.EndedAt != nil {
-		setParts = append(setParts, fmt.Sprintf("ended_at = $%d", argCount))
-		args = append(args, *dto.EndedAt)
-		argCount++
-	}
 
 	if len(setParts) == 0 {
 		return r.GetChatSessionByID(ctx, id)
@@ -307,7 +290,7 @@ func (r *ChatRepositoryImpl) UpdateChatSession(ctx context.Context, id int64, dt
 		UPDATE chat_sessions 
 		SET %s
 		WHERE id = $%d
-		RETURNING id, appointment_id, client_id, specialist_id, status, started_at, ended_at, created_at, updated_at`,
+		RETURNING id, appointment_id, client_id, specialist_id, status, created_at, updated_at`,
 		strings.Join(setParts, ", "), argCount)
 
 	var session domain.ChatSession
@@ -317,8 +300,6 @@ func (r *ChatRepositoryImpl) UpdateChatSession(ctx context.Context, id int64, dt
 		&session.ClientID,
 		&session.SpecialistID,
 		&session.Status,
-		&session.StartedAt,
-		&session.EndedAt,
 		&session.CreatedAt,
 		&session.UpdatedAt,
 	)

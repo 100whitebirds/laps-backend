@@ -148,21 +148,8 @@ func (s *ChatServiceImpl) UpdateChatSession(ctx context.Context, id int64, dto d
 		return nil, err
 	}
 
-	// Business logic for status transitions
-	if dto.Status != nil {
-		switch *dto.Status {
-		case domain.ChatSessionStatusActive:
-			if session.Status == domain.ChatSessionStatusPending {
-				now := time.Now()
-				dto.StartedAt = &now
-			}
-		case domain.ChatSessionStatusEnded:
-			if session.Status == domain.ChatSessionStatusActive {
-				now := time.Now()
-				dto.EndedAt = &now
-			}
-		}
-	}
+	// Business logic for status transitions - just update status
+	// StartedAt and EndedAt are not part of the database schema
 
 	return s.chatRepo.UpdateChatSession(ctx, id, dto)
 }
@@ -174,10 +161,8 @@ func (s *ChatServiceImpl) ArchiveChatSession(ctx context.Context, appointmentID 
 		return nil
 	}
 
-	now := time.Now()
 	dto := domain.UpdateChatSessionDTO{
-		Status:  &[]domain.ChatSessionStatus{domain.ChatSessionStatusEnded}[0],
-		EndedAt: &now,
+		Status: &[]domain.ChatSessionStatus{domain.ChatSessionStatusEnded}[0],
 	}
 
 	_, err = s.chatRepo.UpdateChatSession(ctx, session.ID, dto)
@@ -218,10 +203,8 @@ func (s *ChatServiceImpl) CreateChatMessage(ctx context.Context, dto domain.Crea
 
 	// Auto-activate session if it's pending and this is the first message
 	if session.Status == domain.ChatSessionStatusPending {
-		now := time.Now()
 		updateDTO := domain.UpdateChatSessionDTO{
-			Status:    &[]domain.ChatSessionStatus{domain.ChatSessionStatusActive}[0],
-			StartedAt: &now,
+			Status: &[]domain.ChatSessionStatus{domain.ChatSessionStatusActive}[0],
 		}
 		_, err = s.chatRepo.UpdateChatSession(ctx, session.ID, updateDTO)
 		if err != nil {
