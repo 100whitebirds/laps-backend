@@ -69,7 +69,7 @@ func (r *AppointmentRepo) Create(ctx context.Context, clientID int64, dto domain
 
 	query := `
 		INSERT INTO appointments (client_id, specialist_id, specialization_id, appointment_date, status, consultation_type, communication_method, price, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
 	`
 
@@ -84,6 +84,7 @@ func (r *AppointmentRepo) Create(ctx context.Context, clientID int64, dto domain
 		dto.ConsultationType,
 		dto.CommunicationMethod,
 		price,
+		now,
 		now,
 	).Scan(&id)
 
