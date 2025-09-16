@@ -42,11 +42,14 @@ func (s *AppointmentServiceImpl) Create(ctx context.Context, clientID int64, dto
 		return 0, errors.New("клиент не найден")
 	}
 
-	_, err = s.specialistRepo.GetByID(ctx, dto.SpecialistID)
+	specialist, err := s.specialistRepo.GetByID(ctx, dto.SpecialistID)
 	if err != nil {
 		s.logger.Error("специалист не найден при создании записи", zap.Int64("specialistID", dto.SpecialistID), zap.Error(err))
 		return 0, errors.New("специалист не найден")
 	}
+
+	// Set specialization_id from the specialist
+	dto.SpecializationID = &specialist.SpecializationID
 
 	dateStr := dto.AppointmentDate.Format("2006-01-02")
 	timeStr := dto.AppointmentDate.Format("15:04")
