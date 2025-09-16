@@ -68,8 +68,8 @@ func (r *AppointmentRepo) Create(ctx context.Context, clientID int64, dto domain
 	}
 
 	query := `
-		INSERT INTO appointments (client_id, specialist_id, specialization_id, appointment_date, status, consultation_type, communication_method, price, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO appointments (client_id, specialist_id, specialization_id, appointment_date, status, consultation_type, price, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
 	`
 
@@ -82,7 +82,6 @@ func (r *AppointmentRepo) Create(ctx context.Context, clientID int64, dto domain
 		dto.AppointmentDate,
 		domain.AppointmentStatusPending,
 		dto.ConsultationType,
-		dto.CommunicationMethod,
 		price,
 		now,
 		now,
@@ -101,7 +100,7 @@ func (r *AppointmentRepo) Create(ctx context.Context, clientID int64, dto domain
 
 func (r *AppointmentRepo) GetByID(ctx context.Context, id int64) (*domain.Appointment, error) {
 	query := `
-		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.price, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
+		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.price, a.appointment_date, a.status, a.consultation_type,  a.created_at, a.updated_at,
 		       u.first_name AS user_first_name, u.last_name AS user_last_name,
 		       s.type AS specialist_type,
 		       su.first_name AS specialist_first_name, su.last_name AS specialist_last_name
@@ -125,7 +124,6 @@ func (r *AppointmentRepo) GetByID(ctx context.Context, id int64) (*domain.Appoin
 		&appointment.AppointmentDate,
 		&appointment.Status,
 		&appointment.ConsultationType,
-		&appointment.CommunicationMethod,
 		&appointment.CreatedAt,
 		&appointment.UpdatedAt,
 		&userFirstName,
@@ -285,7 +283,7 @@ func (r *AppointmentRepo) GetByUserID(ctx context.Context, userID int64, filter 
 	args = append(args, filter.Limit, filter.Offset)
 
 	query := fmt.Sprintf(`
-		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
+		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.appointment_date, a.status, a.consultation_type,  a.created_at, a.updated_at,
 		       u.first_name AS user_first_name, u.last_name AS user_last_name,
 		       s.type AS specialist_type,
 		       su.first_name AS specialist_first_name, su.last_name AS specialist_last_name
@@ -318,7 +316,6 @@ func (r *AppointmentRepo) GetByUserID(ctx context.Context, userID int64, filter 
 			&appointment.AppointmentDate,
 			&appointment.Status,
 			&appointment.ConsultationType,
-			&appointment.CommunicationMethod,
 			&appointment.CreatedAt,
 			&appointment.UpdatedAt,
 			&userFirstName,
@@ -374,7 +371,7 @@ func (r *AppointmentRepo) GetBySpecialistID(ctx context.Context, specialistID in
 	args = append(args, filter.Limit, filter.Offset)
 
 	query := fmt.Sprintf(`
-		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
+		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.appointment_date, a.status, a.consultation_type,  a.created_at, a.updated_at,
 		       u.first_name AS user_first_name, u.last_name AS user_last_name,
 		       s.type AS specialist_type,
 		       su.first_name AS specialist_first_name, su.last_name AS specialist_last_name
@@ -407,7 +404,6 @@ func (r *AppointmentRepo) GetBySpecialistID(ctx context.Context, specialistID in
 			&appointment.AppointmentDate,
 			&appointment.Status,
 			&appointment.ConsultationType,
-			&appointment.CommunicationMethod,
 			&appointment.CreatedAt,
 			&appointment.UpdatedAt,
 			&userFirstName,
@@ -533,7 +529,7 @@ func (r *AppointmentRepo) CountByFilter(ctx context.Context, filter domain.Appoi
 
 func (r *AppointmentRepo) List(ctx context.Context, filter domain.AppointmentFilter) ([]domain.Appointment, error) {
 	baseQuery := `
-		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.price, a.appointment_date, a.status, a.consultation_type, a.communication_method, a.created_at, a.updated_at,
+		SELECT a.id, a.client_id, a.specialist_id, a.specialization_id, a.price, a.appointment_date, a.status, a.consultation_type,  a.created_at, a.updated_at,
 		       u.first_name AS user_first_name, u.last_name AS user_last_name,
 		       s.type AS specialist_type,
 		       su.first_name AS specialist_first_name, su.last_name AS specialist_last_name
@@ -618,7 +614,6 @@ func (r *AppointmentRepo) List(ctx context.Context, filter domain.AppointmentFil
 			&appointment.AppointmentDate,
 			&appointment.Status,
 			&appointment.ConsultationType,
-			&appointment.CommunicationMethod,
 			&appointment.CreatedAt,
 			&appointment.UpdatedAt,
 			&userFirstName,
