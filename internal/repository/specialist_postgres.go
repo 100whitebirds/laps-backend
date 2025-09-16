@@ -99,7 +99,6 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 	var specialist domain.Specialist
 	var user domain.User
 	var isActive bool
-	var specializationID *int64
 	var specializationName *string
 
 	err := r.db.QueryRow(ctx, query, id).Scan(
@@ -119,7 +118,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&specialist.ProfilePhotoURL,
 		&specialist.CreatedAt,
 		&specialist.UpdatedAt,
-		&specializationID,
+		&specialist.SpecializationID,
 		&user.ID,
 		&user.Email,
 		&user.Phone,
@@ -142,7 +141,6 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 
 	user.IsActive = isActive
 	specialist.User = user
-	specialist.SpecializationID = specializationID
 	if specializationName != nil {
 		specialist.Specialization = *specializationName
 	}
