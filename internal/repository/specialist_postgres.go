@@ -98,6 +98,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 
 	var specialist domain.Specialist
 	var user domain.User
+	var isActive bool
 	var specializationID *int64
 	var specializationName *string
 
@@ -126,7 +127,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		&user.LastName,
 		&user.MiddleName,
 		&user.Role,
-		&user.IsActive,
+		&isActive,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&specializationName,
@@ -139,6 +140,7 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 		return nil, fmt.Errorf("ошибка получения специалиста: %w", err)
 	}
 
+	user.IsActive = isActive
 	specialist.User = user
 	specialist.SpecializationID = specializationID
 	if specializationName != nil {
