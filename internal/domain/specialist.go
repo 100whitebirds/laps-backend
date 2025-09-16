@@ -9,10 +9,11 @@ type SpecialistType string
 const (
 	SpecialistTypeLawyer       SpecialistType = "lawyer"
 	SpecialistTypePsychologist SpecialistType = "psychologist"
+	SpecialistTypeDietologist  SpecialistType = "dietologist"
 )
 
 func (t SpecialistType) IsValid() bool {
-	return t == SpecialistTypeLawyer || t == SpecialistTypePsychologist
+	return t == SpecialistTypeLawyer || t == SpecialistTypePsychologist || t == SpecialistTypeDietologist
 }
 
 type Specialist struct {
