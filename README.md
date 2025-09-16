@@ -91,3 +91,4 @@ laps/
 
 API документация доступна по адресу `/swagger/index.html` при запущенном приложении в режиме разработки.
 # Railway redeploy trigger
+# Force Railway redeploy Tue Sep 16 07:21:20 +07 2025
