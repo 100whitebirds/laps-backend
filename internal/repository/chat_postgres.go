@@ -23,20 +23,26 @@ func NewChatRepository(db *pgxpool.Pool) *ChatRepositoryImpl {
 
 func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.CreateChatSessionDTO) (*domain.ChatSession, error) {
 	query := `
-		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, status, client_name, specialist_name)
-		VALUES ($1, $2, $3, $4,
-			(SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = $2),
-			(SELECT CONCAT(u.first_name, ' ', u.last_name) FROM specialists s JOIN users u ON s.user_id = u.id WHERE s.id = $3)
-		)
+		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, status, specialization_id)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, appointment_id, client_id, specialist_id, status, created_at, updated_at`
 
 	status := dto.Status
 	if status == "" {
-		status = "active" // Production uses 'active' as default, not 'pending'
+		status = domain.ChatSessionStatusPending
+	}
+
+	// Get specialization_id - for now, use the first specialization of the specialist
+	// TODO: In the future, this should be passed from the appointment creation
+	var specializationID int64
+	specializationQuery := `SELECT specialization_id FROM specialist_specializations WHERE specialist_id = $1 LIMIT 1`
+	err := r.db.QueryRow(ctx, specializationQuery, dto.SpecialistID).Scan(&specializationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get specialist specialization: %w", err)
 	}
 
 	var session domain.ChatSession
-	err := r.db.QueryRow(ctx, query, dto.AppointmentID, dto.ClientID, dto.SpecialistID, status).Scan(
+	err = r.db.QueryRow(ctx, query, dto.AppointmentID, dto.ClientID, dto.SpecialistID, status, specializationID).Scan(
 		&session.ID,
 		&session.AppointmentID,
 		&session.ClientID,
