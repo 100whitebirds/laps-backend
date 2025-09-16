@@ -141,15 +141,13 @@ func (s *ChatServiceImpl) ListChatSessions(ctx context.Context, userID int64, fi
 }
 
 func (s *ChatServiceImpl) UpdateChatSession(ctx context.Context, id int64, dto domain.UpdateChatSessionDTO, userID int64) (*domain.ChatSession, error) {
-	// Get existing session to verify access
-	session, err := s.GetChatSessionByID(ctx, id, userID)
+	// Verify user has access to this chat session
+	_, err := s.GetChatSessionByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Business logic for status transitions - just update status
-	// StartedAt and EndedAt are not part of the database schema
-
+	// Update the session
 	return s.chatRepo.UpdateChatSession(ctx, id, dto)
 }
 
