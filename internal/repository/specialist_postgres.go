@@ -147,12 +147,14 @@ func (r *SpecialistRepo) GetByID(ctx context.Context, id int64) (*domain.Special
 
 	specialist.Education, err = r.GetEducationBySpecialistID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения образования: %w", err)
+		// Log error but don't fail the entire request like List method
+		specialist.Education = []domain.Education{}
 	}
 
 	specialist.WorkExperience, err = r.GetWorkExperienceBySpecialistID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка получения опыта работы: %w", err)
+		// Log error but don't fail the entire request like List method
+		specialist.WorkExperience = []domain.WorkExperience{}
 	}
 
 	return &specialist, nil
