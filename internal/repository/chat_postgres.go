@@ -23,9 +23,9 @@ func NewChatRepository(db *pgxpool.Pool) *ChatRepositoryImpl {
 
 func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.CreateChatSessionDTO) (*domain.ChatSession, error) {
 	query := `
-		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, specialization_id, status)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, appointment_id, client_id, specialist_id, specialization_id, status, started_at, ended_at, created_at, updated_at`
+		INSERT INTO chat_sessions (appointment_id, client_id, specialist_id, status)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, appointment_id, client_id, specialist_id, status, started_at, ended_at, created_at, updated_at`
 
 	status := dto.Status
 	if status == "" {
@@ -33,12 +33,11 @@ func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.C
 	}
 
 	var session domain.ChatSession
-	err := r.db.QueryRow(ctx, query, dto.AppointmentID, dto.ClientID, dto.SpecialistID, dto.SpecializationID, status).Scan(
+	err := r.db.QueryRow(ctx, query, dto.AppointmentID, dto.ClientID, dto.SpecialistID, status).Scan(
 		&session.ID,
 		&session.AppointmentID,
 		&session.ClientID,
 		&session.SpecialistID,
-		&session.SpecializationID,
 		&session.Status,
 		&session.StartedAt,
 		&session.EndedAt,
@@ -52,16 +51,16 @@ func (r *ChatRepositoryImpl) CreateChatSession(ctx context.Context, dto domain.C
 func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (*domain.ChatSession, error) {
 	query := `
 		SELECT 
-			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, cs.specialization_id, 
+			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, 
 			cs.status, cs.started_at, cs.ended_at, cs.created_at, cs.updated_at,
 			CONCAT(uc.first_name, ' ', uc.last_name) as client_name, uc.phone as client_phone,
 			CONCAT(us.first_name, ' ', us.last_name) as specialist_name, us.phone as specialist_phone,
-			sp.name as specialization_name
+			s.specialization_id, sp.name as specialization_name
 		FROM chat_sessions cs
 		LEFT JOIN users uc ON cs.client_id = uc.id
 		LEFT JOIN specialists s ON cs.specialist_id = s.id
 		LEFT JOIN users us ON s.user_id = us.id
-		LEFT JOIN specializations sp ON cs.specialization_id = sp.id
+		LEFT JOIN specializations sp ON s.specialization_id = sp.id
 		WHERE cs.id = $1`
 
 	var session domain.ChatSession
@@ -70,7 +69,6 @@ func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (
 		&session.AppointmentID,
 		&session.ClientID,
 		&session.SpecialistID,
-		&session.SpecializationID,
 		&session.Status,
 		&session.StartedAt,
 		&session.EndedAt,
@@ -80,6 +78,7 @@ func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (
 		&session.ClientPhone,
 		&session.SpecialistName,
 		&session.SpecialistPhone,
+		&session.SpecializationID,
 		&session.SpecializationName,
 	)
 
@@ -89,16 +88,16 @@ func (r *ChatRepositoryImpl) GetChatSessionByID(ctx context.Context, id int64) (
 func (r *ChatRepositoryImpl) GetChatSessionByAppointmentID(ctx context.Context, appointmentID int64) (*domain.ChatSession, error) {
 	query := `
 		SELECT 
-			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, cs.specialization_id, 
+			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, 
 			cs.status, cs.started_at, cs.ended_at, cs.created_at, cs.updated_at,
 			CONCAT(uc.first_name, ' ', uc.last_name) as client_name, uc.phone as client_phone,
 			CONCAT(us.first_name, ' ', us.last_name) as specialist_name, us.phone as specialist_phone,
-			sp.name as specialization_name
+			s.specialization_id, sp.name as specialization_name
 		FROM chat_sessions cs
 		LEFT JOIN users uc ON cs.client_id = uc.id
 		LEFT JOIN specialists s ON cs.specialist_id = s.id
 		LEFT JOIN users us ON s.user_id = us.id
-		LEFT JOIN specializations sp ON cs.specialization_id = sp.id
+		LEFT JOIN specializations sp ON s.specialization_id = sp.id
 		WHERE cs.appointment_id = $1`
 
 	var session domain.ChatSession
@@ -107,7 +106,6 @@ func (r *ChatRepositoryImpl) GetChatSessionByAppointmentID(ctx context.Context, 
 		&session.AppointmentID,
 		&session.ClientID,
 		&session.SpecialistID,
-		&session.SpecializationID,
 		&session.Status,
 		&session.StartedAt,
 		&session.EndedAt,
@@ -117,6 +115,7 @@ func (r *ChatRepositoryImpl) GetChatSessionByAppointmentID(ctx context.Context, 
 		&session.ClientPhone,
 		&session.SpecialistName,
 		&session.SpecialistPhone,
+		&session.SpecializationID,
 		&session.SpecializationName,
 	)
 
@@ -130,16 +129,16 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 
 	baseQuery := `
 		SELECT 
-			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, cs.specialization_id, 
+			cs.id, cs.appointment_id, cs.client_id, cs.specialist_id, 
 			cs.status, cs.started_at, cs.ended_at, cs.created_at, cs.updated_at,
 			CONCAT(uc.first_name, ' ', uc.last_name) as client_name, uc.phone as client_phone,
 			CONCAT(us.first_name, ' ', us.last_name) as specialist_name, us.phone as specialist_phone,
-			sp.name as specialization_name
+			s.specialization_id, sp.name as specialization_name
 		FROM chat_sessions cs
 		LEFT JOIN users uc ON cs.client_id = uc.id
 		LEFT JOIN specialists s ON cs.specialist_id = s.id
 		LEFT JOIN users us ON s.user_id = us.id
-		LEFT JOIN specializations sp ON cs.specialization_id = sp.id`
+		LEFT JOIN specializations sp ON s.specialization_id = sp.id`
 
 	if filter.ClientID != nil {
 		conditions = append(conditions, fmt.Sprintf("cs.client_id = $%d", argCount))
@@ -154,7 +153,7 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 	}
 
 	if filter.SpecializationID != nil {
-		conditions = append(conditions, fmt.Sprintf("cs.specialization_id = $%d", argCount))
+		conditions = append(conditions, fmt.Sprintf("s.specialization_id = $%d", argCount))
 		args = append(args, *filter.SpecializationID)
 		argCount++
 	}
@@ -204,7 +203,6 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 			&session.AppointmentID,
 			&session.ClientID,
 			&session.SpecialistID,
-			&session.SpecializationID,
 			&session.Status,
 			&session.StartedAt,
 			&session.EndedAt,
@@ -214,6 +212,7 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 			&session.ClientPhone,
 			&session.SpecialistName,
 			&session.SpecialistPhone,
+			&session.SpecializationID,
 			&session.SpecializationName,
 		)
 		if err != nil {
@@ -245,7 +244,7 @@ func (r *ChatRepositoryImpl) CountChatSessions(ctx context.Context, filter domai
 	}
 
 	if filter.SpecializationID != nil {
-		conditions = append(conditions, fmt.Sprintf("cs.specialization_id = $%d", argCount))
+		conditions = append(conditions, fmt.Sprintf("s.specialization_id = $%d", argCount))
 		args = append(args, *filter.SpecializationID)
 		argCount++
 	}
@@ -308,7 +307,7 @@ func (r *ChatRepositoryImpl) UpdateChatSession(ctx context.Context, id int64, dt
 		UPDATE chat_sessions 
 		SET %s
 		WHERE id = $%d
-		RETURNING id, appointment_id, client_id, specialist_id, specialization_id, status, started_at, ended_at, created_at, updated_at`,
+		RETURNING id, appointment_id, client_id, specialist_id, status, started_at, ended_at, created_at, updated_at`,
 		strings.Join(setParts, ", "), argCount)
 
 	var session domain.ChatSession
@@ -317,7 +316,6 @@ func (r *ChatRepositoryImpl) UpdateChatSession(ctx context.Context, id int64, dt
 		&session.AppointmentID,
 		&session.ClientID,
 		&session.SpecialistID,
-		&session.SpecializationID,
 		&session.Status,
 		&session.StartedAt,
 		&session.EndedAt,

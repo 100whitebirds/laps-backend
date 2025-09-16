@@ -29,7 +29,7 @@ func NewChatService(repos *repository.Repositories) *ChatServiceImpl {
 // Chat Sessions
 
 func (s *ChatServiceImpl) CreateChatSession(ctx context.Context, dto domain.CreateChatSessionDTO) (*domain.ChatSession, error) {
-	// Verify appointment exists and get specialization_id
+	// Verify appointment exists
 	appointment, err := s.appointmentRepo.GetByID(ctx, dto.AppointmentID)
 	if err != nil {
 		return nil, fmt.Errorf("appointment not found: %w", err)
@@ -41,20 +41,6 @@ func (s *ChatServiceImpl) CreateChatSession(ctx context.Context, dto domain.Crea
 	}
 	if appointment.SpecialistID != dto.SpecialistID {
 		return nil, errors.New("specialist ID does not match appointment")
-	}
-
-	// Set specialization_id from appointment if not provided
-	if dto.SpecializationID == 0 {
-		if appointment.SpecializationID != nil {
-			dto.SpecializationID = *appointment.SpecializationID
-		} else {
-			// Fallback: get specialist's primary specialization
-			specializations, err := s.specialistRepo.GetSpecializationsBySpecialistID(ctx, dto.SpecialistID)
-			if err != nil || len(specializations) == 0 {
-				return nil, errors.New("no specialization found for specialist")
-			}
-			dto.SpecializationID = specializations[0].ID
-		}
 	}
 
 	// Check if chat session already exists for this appointment

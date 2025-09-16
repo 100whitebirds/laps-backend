@@ -25,22 +25,22 @@ const (
 
 // ChatSession represents a chat session between a client and specialist
 type ChatSession struct {
-	ID               int64             `json:"id" db:"id"`
-	AppointmentID    int64             `json:"appointment_id" db:"appointment_id"`
-	ClientID         int64             `json:"client_id" db:"client_id"`
-	SpecialistID     int64             `json:"specialist_id" db:"specialist_id"`
-	SpecializationID int64             `json:"specialization_id" db:"specialization_id"`
-	Status           ChatSessionStatus `json:"status" db:"status"`
-	StartedAt        *time.Time        `json:"started_at,omitempty" db:"started_at"`
-	EndedAt          *time.Time        `json:"ended_at,omitempty" db:"ended_at"`
-	CreatedAt        time.Time         `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time         `json:"updated_at" db:"updated_at"`
+	ID            int64             `json:"id" db:"id"`
+	AppointmentID int64             `json:"appointment_id" db:"appointment_id"`
+	ClientID      int64             `json:"client_id" db:"client_id"`
+	SpecialistID  int64             `json:"specialist_id" db:"specialist_id"`
+	Status        ChatSessionStatus `json:"status" db:"status"`
+	StartedAt     *time.Time        `json:"started_at,omitempty" db:"started_at"`
+	EndedAt       *time.Time        `json:"ended_at,omitempty" db:"ended_at"`
+	CreatedAt     time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at" db:"updated_at"`
 	
 	// Optional fields populated by joins
 	ClientName         *string `json:"client_name,omitempty" db:"client_name"`
 	ClientPhone        *string `json:"client_phone,omitempty" db:"client_phone"`
 	SpecialistName     *string `json:"specialist_name,omitempty" db:"specialist_name"`
 	SpecialistPhone    *string `json:"specialist_phone,omitempty" db:"specialist_phone"`
+	SpecializationID   *int64  `json:"specialization_id,omitempty" db:"specialization_id"`
 	SpecializationName *string `json:"specialization_name,omitempty" db:"specialization_name"`
 }
 
@@ -79,11 +79,10 @@ type ChatParticipant struct {
 
 // CreateChatSessionDTO represents the data required to create a chat session
 type CreateChatSessionDTO struct {
-	AppointmentID    int64             `json:"appointment_id" binding:"required"`
-	ClientID         int64             `json:"client_id" binding:"required"`
-	SpecialistID     int64             `json:"specialist_id" binding:"required"`
-	SpecializationID int64             `json:"specialization_id" binding:"required"`
-	Status           ChatSessionStatus `json:"status,omitempty"`
+	AppointmentID int64             `json:"appointment_id" binding:"required"`
+	ClientID      int64             `json:"client_id" binding:"required"`
+	SpecialistID  int64             `json:"specialist_id" binding:"required"`
+	Status        ChatSessionStatus `json:"status,omitempty"`
 }
 
 // CreateChatMessageDTO represents the data required to create a chat message
