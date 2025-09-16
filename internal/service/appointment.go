@@ -49,7 +49,7 @@ func (s *AppointmentServiceImpl) Create(ctx context.Context, clientID int64, dto
 	}
 
 	// Set specialization_id from the specialist
-	dto.SpecializationID = &specialist.SpecializationID
+	dto.SpecializationID = specialist.SpecializationID
 
 	dateStr := dto.AppointmentDate.Format("2006-01-02")
 	timeStr := dto.AppointmentDate.Format("15:04")
