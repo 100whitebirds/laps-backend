@@ -198,8 +198,6 @@ func (r *ChatRepositoryImpl) ListChatSessions(ctx context.Context, filter domain
 			&session.ClientID,
 			&session.SpecialistID,
 			&session.Status,
-			&session.StartedAt,
-			&session.EndedAt,
 			&session.CreatedAt,
 			&session.UpdatedAt,
 			&session.ClientName,
