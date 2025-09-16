@@ -78,11 +78,10 @@ func (s *AppointmentServiceImpl) Create(ctx context.Context, clientID int64, dto
 
 	// Create chat session automatically for this appointment
 	chatDTO := domain.CreateChatSessionDTO{
-		AppointmentID:    id,
-		ClientID:         clientID,
-		SpecialistID:     dto.SpecialistID,
-		SpecializationID: 0, // Will be set by chat service from appointment or specialist
-		Status:           domain.ChatSessionStatusPending,
+		AppointmentID: id,
+		ClientID:      clientID,
+		SpecialistID:  dto.SpecialistID,
+		Status:        domain.ChatSessionStatusPending,
 	}
 
 	_, err = s.chatService.CreateChatSession(ctx, chatDTO)
