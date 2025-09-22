@@ -10,10 +10,11 @@ const (
 	SpecialistTypeLawyer       SpecialistType = "lawyer"
 	SpecialistTypePsychologist SpecialistType = "psychologist"
 	SpecialistTypeDietologist  SpecialistType = "dietologist"
+	SpecialistTypeTrainer      SpecialistType = "trainer"
 )
 
 func (t SpecialistType) IsValid() bool {
-	return t == SpecialistTypeLawyer || t == SpecialistTypePsychologist || t == SpecialistTypeDietologist
+	return t == SpecialistTypeLawyer || t == SpecialistTypePsychologist || t == SpecialistTypeDietologist || t == SpecialistTypeTrainer
 }
 
 type Specialist struct {
@@ -66,7 +67,7 @@ type WorkPlace struct {
 
 type CreateSpecialistDTO struct {
 	UserID                int64               `json:"user_id,omitempty"`
-	Type                  SpecialistType      `json:"type" binding:"required,oneof=lawyer psychologist"`
+	Type                  SpecialistType      `json:"type" binding:"required,oneof=lawyer psychologist dietologist trainer"`
 	SpecializationID      int64               `json:"specialization_id" binding:"required"`
 	Experience            int                 `json:"experience,omitempty" binding:"min=0"`
 	Description           string              `json:"description,omitempty"`
@@ -80,7 +81,7 @@ type CreateSpecialistDTO struct {
 }
 
 type UpdateSpecialistDTO struct {
-	Type                  *SpecialistType `json:"type" binding:"omitempty,oneof=lawyer psychologist"`
+	Type                  *SpecialistType `json:"type" binding:"omitempty,oneof=lawyer psychologist dietologist trainer"`
 	SpecializationID      *int64          `json:"specialization_id"`
 	Experience            *int            `json:"experience" binding:"omitempty,min=0"`
 	Description           *string         `json:"description"`
