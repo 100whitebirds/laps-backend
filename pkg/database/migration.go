@@ -55,8 +55,15 @@ func RunMigrations(db *pgxpool.Pool, migrationsDir string, logger *zap.Logger) e
 
 	files, err := ioutil.ReadDir(migrationsDir)
 	if err != nil {
+		logger.Error("failed to read migrations directory", 
+			zap.String("path", migrationsDir),
+			zap.Error(err))
 		return fmt.Errorf("ошибка при чтении директории миграций: %w", err)
 	}
+
+	logger.Info("reading migrations directory", 
+		zap.String("path", migrationsDir),
+		zap.Int("total_files", len(files)))
 
 	var migrationFiles []string
 	for _, file := range files {
@@ -65,6 +72,10 @@ func RunMigrations(db *pgxpool.Pool, migrationsDir string, logger *zap.Logger) e
 		}
 	}
 	sort.Strings(migrationFiles)
+
+	logger.Info("found migration files", 
+		zap.Int("count", len(migrationFiles)),
+		zap.Strings("files", migrationFiles))
 
 	appliedMap := make(map[string]bool)
 	for _, migration := range appliedMigrations {

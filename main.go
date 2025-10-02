@@ -79,7 +79,17 @@ func main() {
 	defer db.Close()
 
 	logger.Info("Запуск миграций базы данных")
-	if err := database.RunMigrations(db, "./migrations", logger); err != nil {
+	
+	// Try to detect migrations directory
+	migrationsPath := "./migrations"
+	if _, err := os.Stat("/app/migrations"); err == nil {
+		migrationsPath = "/app/migrations"
+		logger.Info("Using absolute migrations path", zap.String("path", migrationsPath))
+	} else {
+		logger.Info("Using relative migrations path", zap.String("path", migrationsPath))
+	}
+	
+	if err := database.RunMigrations(db, migrationsPath, logger); err != nil {
 		logger.Fatal("Ошибка при выполнении миграций", zap.Error(err))
 	}
 	logger.Info("Миграции успешно выполнены")
