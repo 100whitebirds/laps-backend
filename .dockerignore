@@ -1,0 +1,40 @@
+# Binaries
+main
+laps
+*.exe
+
+# Logs
+*.log
+
+# Test and temp files
+*.test
+*.out
+tmp/
+temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Documentation that's not needed in container
+README.md
+RAILWAY_DEPLOYMENT.md
+MIGRATION_DEBUG_GUIDE.md
+railway.env.template
+setup-railway.sh
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
