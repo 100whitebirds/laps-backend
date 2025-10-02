@@ -5,17 +5,12 @@ RUN apk update && \
 
 WORKDIR /app
 
-# Copy go mod files first for better caching
 COPY go.mod go.sum ./
-
-# Download dependencies (cached if go.mod/go.sum unchanged)
 RUN go mod download
 
-# Copy source code
 COPY . .
 
-# Build binary with size optimization
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o laps .
+RUN CGO_ENABLED=0 GOOS=linux go build -o laps .
 
 FROM alpine:3.19
 
