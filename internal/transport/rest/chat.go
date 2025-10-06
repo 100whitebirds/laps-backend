@@ -249,7 +249,7 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param session_id path int true "Chat session ID"
-// @Param message_type query string false "Filter by message type" Enums(text,image,file,system)
+// @Param message_type query string false "Filter by message type" Enums(text,image,file,system,call)
 // @Param limit query int false "Limit number of results" default(50)
 // @Param offset query int false "Offset for pagination" default(0)
 // @Success 200 {object} paginatedSuccessResponse{data=[]domain.ChatMessage}

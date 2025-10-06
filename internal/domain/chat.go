@@ -21,6 +21,8 @@ const (
 	MessageTypeImage  MessageType = "image"
 	MessageTypeFile   MessageType = "file"
 	MessageTypeSystem MessageType = "system"
+    // Call-related system messages (started, ended, rejected, missed)
+    MessageTypeCall   MessageType = "call"
 )
 
 // ChatSession represents a chat session between a client and specialist

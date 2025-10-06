@@ -1,7 +1,9 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -21,6 +23,7 @@ type SignalingMessage struct {
 	SessionID string      `json:"session_id"`
 	From      int64       `json:"from"`
 	To        int64       `json:"to"`
+    ChatSessionID int64   `json:"chat_session_id,omitempty"`
 	Data      interface{} `json:"data,omitempty"`
 	Timestamp string      `json:"timestamp"`
 }
@@ -58,18 +61,22 @@ type SignalingHub struct {
 	// Services
 	services *service.Services
 
+	// Track which call sessions have already persisted a call-end message to prevent duplicates
+	persistedCallEnds map[string]bool
+
 	// Mutex for thread safety
 	mutex sync.RWMutex
 }
 
 // CallSession represents an active call session
 type CallSession struct {
-	ID           string    `json:"id"`
-	ClientID     int64     `json:"client_id"`
-	SpecialistID int64     `json:"specialist_id"`
-	AppointmentID *int64   `json:"appointment_id,omitempty"`
-	Status       string    `json:"status"` // waiting, active, ended
-	CreatedAt    time.Time `json:"created_at"`
+	ID           string     `json:"id"`
+	ClientID     int64      `json:"client_id"`
+	SpecialistID int64      `json:"specialist_id"`
+	AppointmentID *int64    `json:"appointment_id,omitempty"`
+	Status       string     `json:"status"` // waiting, active, ended
+	CreatedAt    time.Time  `json:"created_at"`
+	AnsweredAt   *time.Time `json:"answered_at,omitempty"` // When call was actually accepted
 	EndedAt      *time.Time `json:"ended_at,omitempty"`
 }
 
@@ -106,13 +113,14 @@ var upgrader = websocket.Upgrader{
 // NewSignalingHub creates a new signaling hub
 func NewSignalingHub(logger *zap.Logger, services *service.Services) *SignalingHub {
 	return &SignalingHub{
-		clients:    make(map[int64]*Client),
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		sessions:   make(map[string]*CallSession),
-		logger:     logger,
-		services:   services,
+		clients:           make(map[int64]*Client),
+		broadcast:         make(chan []byte),
+		register:          make(chan *Client),
+		unregister:        make(chan *Client),
+		sessions:          make(map[string]*CallSession),
+		persistedCallEnds: make(map[string]bool),
+		logger:            logger,
+		services:          services,
 	}
 }
 
@@ -318,6 +326,7 @@ func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
 			SessionID: msg.SessionID,
 			From:      msg.To,
 			To:        msg.From,
+            ChatSessionID: msg.ChatSessionID,
 			Data:      map[string]string{"error": "User not available"},
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
@@ -326,6 +335,11 @@ func (h *SignalingHub) handleCallOffer(msg *SignalingMessage) {
 				zap.Int64("caller_id", msg.From))
 			h.sendMessageToClient(callerClient, errorMsg)
 		}
+
+        // Persist failed call event in chat, if chat session is provided
+        if msg.ChatSessionID > 0 {
+            _ = h.persistCallMessage(msg.ChatSessionID, msg.From, "Call failed: user not available")
+        }
 	}
 }
 
@@ -334,9 +348,14 @@ func (h *SignalingHub) handleCallAnswer(msg *SignalingMessage) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
-	// Update session status
+	// Update session status and mark when call was answered
 	if session, exists := h.sessions[msg.SessionID]; exists {
 		session.Status = "active"
+		now := time.Now()
+		session.AnsweredAt = &now // Record when call was actually accepted
+		h.logger.Info("Call answered", 
+			zap.String("session_id", msg.SessionID),
+			zap.Time("answered_at", now))
 	}
 
 	// Forward answer to caller
@@ -347,6 +366,10 @@ func (h *SignalingHub) handleCallAnswer(msg *SignalingMessage) {
 			zap.Int64("from", msg.From),
 			zap.Int64("to", msg.To))
 	}
+
+    // NOTE: We no longer persist "Call started" messages here
+    // Only "Call ended" with duration will be persisted when the call ends
+    // This ensures only ONE system message per successful call
 }
 
 // handleIceCandidate processes ICE candidate messages
@@ -377,18 +400,36 @@ func (h *SignalingHub) handleCallReject(msg *SignalingMessage) {
 			zap.Int64("caller_id", msg.To))
 	}
 
-	// Remove session if it exists
+	// Remove session and cleanup tracking maps
 	if _, exists := h.sessions[msg.SessionID]; exists {
 		delete(h.sessions, msg.SessionID)
+		delete(h.persistedCallEnds, msg.SessionID)
 		h.logger.Info("Session removed after rejection", 
 			zap.String("session_id", msg.SessionID))
 	}
+
+    // Persist rejection event - use neutral "Call ended" so it displays correctly for both sides
+    if msg.ChatSessionID > 0 {
+        // Persist as "Call ended" (no duration) which frontend will format as:
+        // - "Исходящий вызов отменен" for the initiator
+        // - "Входящий вызов отменен" for the receiver
+        _ = h.persistCallMessage(msg.ChatSessionID, msg.From, "Call ended")
+    }
 }
 
 // handleCallEnd processes call end messages
 func (h *SignalingHub) handleCallEnd(msg *SignalingMessage) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
+
+	// Check if this is a rejection (call-end with reason='rejected')
+	// If so, don't persist a duplicate message since handleCallReject already did
+	var isRejection bool
+	if dataMap, ok := msg.Data.(map[string]interface{}); ok {
+		if reason, ok := dataMap["reason"].(string); ok && reason == "rejected" {
+			isRejection = true
+		}
+	}
 
 	// Update session status
 	if session, exists := h.sessions[msg.SessionID]; exists {
@@ -402,7 +443,69 @@ func (h *SignalingHub) handleCallEnd(msg *SignalingMessage) {
 		h.sendMessageToClient(targetClient, msg)
 	}
 
-	h.logger.Info("Call ended", zap.String("session_id", msg.SessionID))
+	h.logger.Info("Call ended", 
+		zap.String("session_id", msg.SessionID),
+		zap.Int64("chat_session_id", msg.ChatSessionID),
+		zap.Int64("from", msg.From),
+		zap.Int64("to", msg.To),
+		zap.Bool("is_rejection", isRejection))
+
+    // Check if we've already persisted a call-end for this session to prevent duplicates
+    // (Both users might send call-end when hanging up simultaneously)
+    if h.persistedCallEnds[msg.SessionID] {
+        h.logger.Info("⏭️ [BACKEND] Already persisted call-end for this session, skipping duplicate", 
+            zap.String("session_id", msg.SessionID))
+        return
+    }
+
+    // Persist call end event with duration ONLY if:
+    // 1. Call was actually answered (not rejected)
+    // 2. This is not a rejection (which is already handled by handleCallReject)
+    // 3. We haven't already persisted a call-end for this session
+    if msg.ChatSessionID > 0 && !isRejection {
+		h.logger.Info("💾 [BACKEND] Persisting call-end message to chat", 
+			zap.Int64("chat_session_id", msg.ChatSessionID),
+			zap.Int64("sender_id", msg.From))
+        durationText := ""
+        // Only calculate duration if call was actually answered (not just invited)
+        if session, ok := h.sessions[msg.SessionID]; ok && session != nil && session.AnsweredAt != nil {
+            dur := time.Since(*session.AnsweredAt)
+            mins := int(dur.Minutes())
+            secs := int(dur.Seconds()) % 60
+            durationText = " • длительность " + fmt.Sprintf("%d:%02d", mins, secs)
+			h.logger.Info("Call duration calculated from answer time", 
+				zap.String("session_id", msg.SessionID),
+				zap.Duration("duration", dur))
+        } else {
+			h.logger.Info("Call ended before being answered, no duration", 
+				zap.String("session_id", msg.SessionID))
+		}
+        err := h.persistCallMessage(msg.ChatSessionID, msg.From, "Call ended"+durationText)
+		if err == nil {
+			h.logger.Info("✅ [BACKEND] Call-end message persisted successfully")
+            // Mark this session as having persisted a call-end to prevent duplicates
+            h.persistedCallEnds[msg.SessionID] = true
+		}
+    } else {
+		h.logger.Warn("⚠️ [BACKEND] Cannot persist call-end: chat_session_id is missing or zero", 
+			zap.Int64("chat_session_id", msg.ChatSessionID))
+	}
+}
+
+// persistCallMessage stores a 'call' type chat message linked to the provided chat session
+func (h *SignalingHub) persistCallMessage(chatSessionID int64, senderID int64, content string) error {
+    dto := domain.CreateChatMessageDTO{
+        SessionID: chatSessionID,
+        SenderID:  senderID,
+        Type:      domain.MessageTypeCall,
+        Content:   content,
+    }
+    // Use background context; service will validate access
+    _, err := h.services.Chat.CreateChatMessage(context.Background(), dto, senderID)
+    if err != nil {
+        h.logger.Warn("Failed to persist call chat message", zap.Error(err), zap.Int64("chat_session_id", chatSessionID))
+    }
+    return err
 }
 
 // handlePing processes ping messages for connection keepalive
